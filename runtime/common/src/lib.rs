@@ -68,7 +68,7 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for Fi
 		&mut self,
 		weight: Weight,
 		payment: Assets,
-		context: &xcm::v3::XcmContext,
+		_context: &xcm::v3::XcmContext,
 	) -> Result<Assets, XcmError> {
 		log::trace!(target: "xcm::weight", "buy_weight weight: {:?}, payment: {:?}", weight, payment);
 
@@ -113,7 +113,7 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for Fi
 		Err(XcmError::TooExpensive)
 	}
 
-	fn refund_weight(&mut self, weight: Weight, context: &xcm::v3::XcmContext) -> Option<MultiAsset> {
+	fn refund_weight(&mut self, weight: Weight, _context: &xcm::v3::XcmContext) -> Option<MultiAsset> {
 		log::trace!(
 			target: "xcm::weight", "refund_weight weight: {:?}, weight: {:?}, amount: {:?}, ratio: {:?}, multi_location: {:?}",
 			weight, self.weight, self.amount, self.ratio, self.multi_location

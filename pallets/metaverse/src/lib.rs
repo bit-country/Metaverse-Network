@@ -324,7 +324,7 @@ pub mod pallet {
 					MetaverseOwner::<T>::insert(to.clone(), metaverse_id.clone(), ());
 
 					Metaverses::<T>::try_mutate_exists(&metaverse_id, |metaverse| -> DispatchResultWithPostInfo {
-						let mut metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
+						let metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
 						metaverse_record.owner = to.clone();
 						Self::deposit_event(Event::<T>::TransferredMetaverse(metaverse_id, who.clone(), to.clone()));
 
@@ -685,7 +685,7 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 
 	fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Metaverses::<T>::try_mutate_exists(&metaverse_id, |metaverse| {
-			let mut metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
+			let metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
 
 			ensure!(
 				metaverse_record.currency_id == FungibleTokenId::NativeToken(0),

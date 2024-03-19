@@ -16,11 +16,13 @@ members = [
     "modules/bridge",
 ]
 
+workspace.resolver = "2"
+
 [workspace.dependencies]
 # General 
 codec = { package = "parity-scale-codec", version = "3.4.0", default-features = false, features = ["derive"] }
-serde_json = "1.0.92"
-serde = { version = "1.0.151", default-features =  false}
+serde_json = { version = "1.0.92", default-features = false }
+serde = { version = "1.0.151", default-features = false, features = ["derive", "alloc"] }
 scale-info = { version = "2.5.0", features = ["derive"], default-features = false }
 hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
@@ -35,6 +37,8 @@ blake2-rfc = { version = "0.2.18", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 funty = { version = "=1.1.0", default-features = false }
 similar-asserts = { version = "1.1.0" }
+curve25519-dalek = { version = "4.1.2", features = ["serde"] }
+
 
 # General (ethereum)
 ethabi = { version = "18.0.0", default-features = false }
@@ -233,7 +237,7 @@ pallet-evm-precompile-ed25519 = { git = "https://github.com/justinphamnz/frontie
 pallet-evm-precompile-modexp = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0", default-features = false }
 pallet-evm-precompile-sha3fips = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0", default-features = false }
 pallet-evm-precompile-simple = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0", default-features = false }
-libsecp256k1 = { version = "0.7.0", default-features = false, features = ["hmac", "static-context"] }
+libsecp256k1 = { version = "0.7.1", default-features = false, features = ["hmac", "static-context"] }
 
 # ink!
 pallet-contracts = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }

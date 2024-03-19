@@ -1,7 +1,6 @@
 #![cfg(test)]
 
 use codec::Encode;
-use frame_support::dispatch::DispatchError;
 use frame_support::traits::{ConstU32, EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
@@ -12,7 +11,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
-	Perbill,
+	DispatchError, Perbill,
 };
 use sp_std::collections::btree_map::BTreeMap;
 
@@ -21,6 +20,7 @@ use metaverse_primitive::{
 	MetaverseTrait, NFTTrait, NftClassData, NftMetadata, TokenType,
 };
 use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, TokenId};
+use sp_runtime::BuildStorage;
 
 use crate as governance;
 
@@ -78,7 +78,7 @@ pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Nonce = u64;
-	type Block = BlockNumber;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
@@ -122,7 +122,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = Weight::from_ref_time(128);
+	pub MaximumSchedulerWeight: Weight = Weight::from_parts(128, 0);
 }
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -577,7 +577,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
@@ -601,8 +601,8 @@ impl ExtBuilder {
 	}
 
 	pub fn build_with_block_number(self, block_number: u64) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {

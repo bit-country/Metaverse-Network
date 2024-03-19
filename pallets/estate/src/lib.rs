@@ -923,7 +923,7 @@ pub mod pallet {
 			UndeployedLandBlocks::<T>::try_mutate_exists(
 				&undeployed_land_block_id,
 				|undeployed_land_block| -> DispatchResultWithPostInfo {
-					let mut undeployed_land_block_record = undeployed_land_block
+					let undeployed_land_block_record = undeployed_land_block
 						.as_mut()
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
@@ -976,7 +976,7 @@ pub mod pallet {
 			UndeployedLandBlocks::<T>::try_mutate_exists(
 				&undeployed_land_block_id,
 				|undeployed_land_block| -> DispatchResultWithPostInfo {
-					let mut undeployed_land_block_record = undeployed_land_block
+					let undeployed_land_block_record = undeployed_land_block
 						.as_mut()
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 

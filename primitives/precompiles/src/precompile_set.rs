@@ -203,7 +203,7 @@ where
 	}
 
 	#[inline(always)]
-	fn is_precompile(&self, address: H160, remaining_gas: u64) -> IsPrecompileResult {
+	fn is_precompile(&self, address: H160, _remaining_gas: u64) -> IsPrecompileResult {
 		IsPrecompileResult::Answer {
 			is_precompile: (address == A::get()),
 			extra_cost: 0,
@@ -291,7 +291,7 @@ where
 	}
 
 	#[inline(always)]
-	fn is_precompile(&self, address: H160, remaining_gas: u64) -> IsPrecompileResult {
+	fn is_precompile(&self, address: H160, _remaining_gas: u64) -> IsPrecompileResult {
 		IsPrecompileResult::Answer {
 			is_precompile: (address == A::get()),
 			extra_cost: 0,
@@ -426,7 +426,7 @@ where
 	}
 
 	#[inline(always)]
-	fn is_precompile(&self, address: H160, remaining_gas: u64) -> IsPrecompileResult {
+	fn is_precompile(&self, address: H160, _remaining_gas: u64) -> IsPrecompileResult {
 		IsPrecompileResult::Answer {
 			is_precompile: (address == A::get()),
 			extra_cost: 0,

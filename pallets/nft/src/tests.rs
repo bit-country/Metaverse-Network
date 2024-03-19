@@ -4,6 +4,7 @@ use orml_traits::MultiCurrency;
 use sp_core::Pair;
 use sp_runtime::traits::{BadOrigin, IdentifyAccount};
 use sp_runtime::{MultiSignature, MultiSigner};
+use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 
 use mock::*;
@@ -993,7 +994,6 @@ fn validate_signature() {
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
-			expired: 1000,
 			mint_price: None,
 			token_id: None,
 			expired: 100u64,
@@ -1024,7 +1024,6 @@ fn pre_signed_mints_should_work() {
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
-			expired: 1000,
 			mint_price: None,
 			token_id: None,
 			expired: 100u64,
@@ -1062,7 +1061,6 @@ fn pre_signed_mint_should_work_with_only_account() {
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: Some(account(2)),
-			expired: 1000,
 			mint_price: None,
 			token_id: None,
 			expired: 100u64,
@@ -1109,7 +1107,6 @@ fn pre_signed_mint_should_collect_fee_with_mint_price() {
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
-			expired: 1000,
 			mint_price: Some(50),
 			token_id: None,
 			expired: 100u64,

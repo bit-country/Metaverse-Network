@@ -5,10 +5,10 @@ use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use frame_system::RawOrigin;
 use orml_traits::{BasicCurrency, MultiCurrency};
-use pallet_evm::{
-	ExitRevert, IsPrecompileResult, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
-	PrecompileResult, PrecompileSet,
-};
+use pallet_evm::{ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult};
+#[cfg(test)]
+use pallet_evm::{IsPrecompileResult, PrecompileSet};
+
 use sp_core::{H160, U256};
 use sp_runtime::traits::{AccountIdConversion, Dispatchable};
 use sp_runtime::Perbill;

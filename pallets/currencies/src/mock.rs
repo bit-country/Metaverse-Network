@@ -13,6 +13,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	Perbill,
 };
+use sp_runtime::BuildStorage;
 
 use crate as tokenization;
 use crate::{Config, Module};
@@ -45,7 +46,7 @@ parameter_types! {
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Nonce = u64;
-	type Block = BlockNumber;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
@@ -206,7 +207,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
+		System: frame_system::{Module, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		Currencies: orml_currencies::{ Module, Storage, Call},
 		Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
@@ -223,8 +224,8 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {

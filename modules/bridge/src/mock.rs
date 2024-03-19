@@ -9,13 +9,14 @@ use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleError, Perbill};
+use sp_runtime::{traits::IdentityLookup, ModuleError, Perbill};
 
 use core_primitives::{Attributes, CollectionType, NFTTrait, NftClassData, NftMetadata, TokenType};
 use primitives::{
 	continuum::MapTrait, Amount, ClassId, EstateId, FungibleTokenId, GroupCollectionId, MapSpotId, TokenId,
 	UndeployedLandBlockId,
 };
+use sp_runtime::BuildStorage;
 
 use crate as bridge;
 
@@ -65,7 +66,7 @@ pub const UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST: UndeployedLandBlockId = 5;
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Nonce = u64;
-	type Block = BlockNumber;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
@@ -201,7 +202,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -222,8 +223,8 @@ impl ExtBuilder {
 	}
 
 	pub fn build_with_block_number(self, block_number: u64) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {

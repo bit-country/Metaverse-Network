@@ -28,18 +28,16 @@ use frame_support::{
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, RewardHandler};
-use sp_runtime::traits::{
-	BlockNumberProvider, Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, UniqueSaturatedInto,
-};
+use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, One, UniqueSaturatedInto};
 use sp_runtime::{
-	traits::{AccountIdConversion, Convert, Saturating, Zero},
-	ArithmeticError, DispatchError, FixedPointNumber, Perbill, Permill, SaturatedConversion,
+	traits::{AccountIdConversion, Saturating, Zero},
+	ArithmeticError, DispatchError, FixedPointNumber, SaturatedConversion,
 };
 
 use core_primitives::*;
 pub use pallet::*;
 use primitives::bounded::Rate;
-use primitives::{ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId};
+use primitives::{EraIndex, FungibleTokenId, PoolId, StakingRound};
 pub use weights::WeightInfo;
 
 pub type QueueId = u32;
@@ -59,12 +57,12 @@ const BOOSTING_ID: LockIdentifier = *b"bc/boost";
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency, WithdrawReasons};
+	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
-	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub, One, UniqueSaturatedInto};
-	use sp_runtime::Permill;
-	use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedSub, UniqueSaturatedInto};
+
+	use sp_std::collections::btree_map::BTreeMap;
 
 	use primitives::bounded::FractionalRate;
 	use primitives::{PoolId, StakingRound};
@@ -782,8 +780,8 @@ pub mod pallet {
 			// Calculate lock period from UnlockDuration block number x conviction
 			let current_block: BlockNumberFor<T> = <frame_system::Pallet<T>>::block_number();
 
-			let mut unlock_at = current_block.saturating_add(UpdateEraFrequency::<T>::get());
-			let mut total_balance = vote.balance;
+			let unlock_at = current_block.saturating_add(UpdateEraFrequency::<T>::get());
+			let total_balance = vote.balance;
 			if !vote_conviction.is_zero() {
 				unlock_at.saturating_mul(vote_conviction.into());
 				total_balance.saturating_mul(vote_conviction.into());
@@ -1040,7 +1038,7 @@ impl<T: Config> Pallet<T> {
 		if !reward_rate.is_zero() {
 			// iterate all pool ledgers
 			for (pool_id, pool_amount) in PoolLedger::<T>::iter() {
-				let mut reward_staking = reward_rate.saturating_mul_int(pool_amount);
+				let reward_staking = reward_rate.saturating_mul_int(pool_amount);
 
 				if !reward_staking.is_zero() {
 					let pool_treasury_account = Self::get_pool_treasury(pool_id);
@@ -1333,7 +1331,7 @@ impl<T: Config> Pallet<T> {
 	/// Ensure atomic
 	#[transactional]
 	fn payout_reward(
-		pool_id: PoolId,
+		_pool_id: PoolId,
 		who: &T::AccountId,
 		reward_currency_id: FungibleTokenId,
 		payout_amount: BalanceOf<T>,

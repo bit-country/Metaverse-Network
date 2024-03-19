@@ -18,14 +18,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
-use frame_support::traits::{Currency, VestingSchedule};
+
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use pallet_vesting::{Pallet as VestingModule, VestingInfo};
+use pallet_vesting::Pallet as VestingModule;
 
 use sp_runtime::traits::Saturating;
-use sp_std::{convert::TryInto, vec::Vec};
+use sp_std::convert::TryInto;
 
 pub use pallet::*;
 

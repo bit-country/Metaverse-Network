@@ -20,12 +20,12 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
-	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, IntegerSquareRoot, Saturating, Zero},
-	Permill, RuntimeDebug,
+	traits::{Bounded, CheckedDiv, CheckedMul, Saturating, Zero},
+	RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
-use primitives::bounded::{FractionalRate, Rate};
+use primitives::bounded::Rate;
 use primitives::{FungibleTokenId, PoolId};
 
 // Helper methods to compute the issuance rate for undeployed land.

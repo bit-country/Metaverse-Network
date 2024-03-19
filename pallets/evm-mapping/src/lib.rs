@@ -39,7 +39,7 @@ use orml_traits::currency::TransferAll;
 pub use pallet::*;
 use primitives::{AccountIndex, EvmAddress};
 use sp_core::crypto::AccountId32;
-use sp_core::{H160, H256};
+
 use sp_io::{
 	crypto::secp256k1_ecdsa_recover,
 	hashing::{blake2_256, keccak_256},
@@ -287,7 +287,7 @@ impl<T: Config> Pallet<T> {
 
 	#[cfg(any(feature = "runtime-benchmarks", feature = "std"))]
 	// Constructs a message and signs it.
-	pub fn eth_sign(secret: &libsecp256k1::SecretKey, who: &T::AccountId) -> EcdsaSignature {
+	pub fn eth_sign(secret: &libsecp256k1::SecretKey, _who: &T::AccountId) -> EcdsaSignature {
 		let address = Self::eth_address(secret);
 
 		let what = address.using_encoded(to_ascii_hex);

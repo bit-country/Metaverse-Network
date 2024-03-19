@@ -20,7 +20,6 @@ use {
 		prelude::*,
 	},
 	fp_evm::PrecompileFailure,
-	frame_support::WeakBoundedVec,
 	hex_literal::hex,
 	pallet_evm::Context,
 	sp_core::{H160, H256, U256},

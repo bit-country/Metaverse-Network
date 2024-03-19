@@ -44,8 +44,8 @@ use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError,
 };
+use sp_std::prelude::*;
 use sp_std::vec::Vec;
-use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
@@ -909,7 +909,7 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Tokens::<T>::try_mutate_exists(&token_id.0, &token_id.1, |maybe_token_info| -> DispatchResult {
-				let mut token_info_result = maybe_token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
+				let token_info_result = maybe_token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
 				token_info_result.data.is_locked = false;
 				Self::deposit_event(Event::<T>::NftUnlocked(token_id.0, token_id.1));
 
@@ -1315,7 +1315,7 @@ impl<T: Config> Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 		is_locked: bool,
-	) -> Result<((ClassIdOf<T>, TokenIdOf<T>)), DispatchError> {
+	) -> Result<(ClassIdOf<T>, TokenIdOf<T>), DispatchError> {
 		let minted_token_id =
 			Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked)?;
 		let nft_proxy_account: T::AccountId =

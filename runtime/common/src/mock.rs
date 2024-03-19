@@ -34,6 +34,7 @@ use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
 use crate::nft::NftPrecompile;
+use sp_runtime::BuildStorage;
 
 use super::*;
 
@@ -166,7 +167,7 @@ pub const WEIGHT_PER_GAS: u64 = WEIGHT_REF_TIME_PER_SECOND.saturating_div(GAS_PE
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
 	pub PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
-	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
+	pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
 	pub const GasLimitPovSizeRatio: u64 = 4;
 }
 
@@ -547,8 +548,8 @@ impl ExtBuilder {
 	}
 
 	pub(crate) fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.expect("Frame system builds valid default genesis config");
 
 		pallet_balances::GenesisConfig::<Runtime> {
