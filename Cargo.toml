@@ -16,14 +16,14 @@ members = [
     "modules/bridge",
 ]
 
-workspace.resolver = "2"
+resolver = "2"
 
 [workspace.dependencies]
 # General 
-codec = { package = "parity-scale-codec", version = "3.4.0", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0.92", default-features = false }
-serde = { version = "1.0.151", default-features = false, features = ["derive", "alloc"] }
-scale-info = { version = "2.5.0", features = ["derive"], default-features = false }
+codec = { package = "parity-scale-codec", version = "3.4.0", default-features = false, features = ["max-encoded-len"] }
+serde_json = { version = "=1.0.105", default-features = false }
+serde = { version = "=1.0.193", default-features = false, features = ["derive", "alloc"] }
+scale-info = { version = "2.9.0", features = ["derive"], default-features = false }
 hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
 smallvec = "1.9.0"

@@ -13,7 +13,7 @@ use sp_runtime::traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify};
 use sp_runtime::{MultiSignature, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
-pub use primitive_traits::{CollectionType, NftAssetData, NftClassData};
+pub use primitive_traits::{NftAssetData, NftClassData};
 use primitives::{Amount, AuctionId, CurrencyId, FungibleTokenId, ItemId};
 use sp_runtime::BuildStorage;
 
