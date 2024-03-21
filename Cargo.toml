@@ -22,7 +22,7 @@ resolver = "2"
 # General 
 codec = { package = "parity-scale-codec", version = "3.4.0", default-features = false, features = ["max-encoded-len"] }
 serde_json = { version = "=1.0.105", default-features = false }
-serde = { version = "=1.0.193", default-features = false, features = ["derive", "alloc"] }
+serde = { version = "=1.0.194", default-features = false, features = ["derive", "alloc"] }
 scale-info = { version = "2.9.0", features = ["derive"], default-features = false }
 hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
