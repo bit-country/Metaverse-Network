@@ -31,7 +31,7 @@ pub use fp_evm::GenesisAccount;
 use fp_rpc::TransactionStatus;
 // use metaverse::weights::WeightInfo;
 #[cfg(feature = "runtime-benchmarks")]
-use frame_benchmarking::frame_support::pallet_prelude::Get;
+use frame_support::pallet_prelude::Get;
 pub use frame_support::{
 	construct_runtime,
 	dispatch::DispatchInfo,
@@ -2212,7 +2212,8 @@ impl_runtime_apis! {
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
+			use frame_support::traits::TrackedStorageKey;
+			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark};
 			use orml_benchmarking::add_benchmark as orml_add_benchmark;
 
 			use frame_system_benchmarking::Pallet as SystemBench;
