@@ -171,7 +171,21 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 	}
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo, Serialize, Deserialize)]
+#[derive(
+	Encode,
+	Decode,
+	Eq,
+	PartialEq,
+	Copy,
+	Clone,
+	RuntimeDebug,
+	MaxEncodedLen,
+	PartialOrd,
+	Ord,
+	TypeInfo,
+	Serialize,
+	Deserialize,
+)]
 #[serde(rename_all = "camelCase")]
 //#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum FungibleTokenId {

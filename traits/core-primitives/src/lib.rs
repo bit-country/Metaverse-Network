@@ -2,7 +2,6 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{DispatchError, DispatchResult, Perbill, RuntimeDebug};
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
@@ -12,8 +11,7 @@ use primitives::{
 	ClassId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType,
 };
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, TypeInfo, Serialize, Deserialize)]
 pub enum TokenType {
 	Transferable,
 	BoundToAddress,
@@ -31,8 +29,7 @@ impl Default for TokenType {
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, Serialize, Deserialize)]
 pub enum CollectionType {
 	Collectable,
 	Wearable,
@@ -70,8 +67,7 @@ pub struct NftGroupCollectionData {
 	pub properties: NftMetadata,
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, Serialize, Deserialize)]
 pub struct NftClassData<Balance> {
 	// Minimum balance to create a collection of Asset
 	pub deposit: Balance,
@@ -84,8 +80,7 @@ pub struct NftClassData<Balance> {
 	pub total_minted_tokens: u32,
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, Serialize, Deserialize)]
 pub struct NftClassDataV1<Balance> {
 	// Minimum balance to create a collection of Asset
 	pub deposit: Balance,
@@ -96,8 +91,7 @@ pub struct NftClassDataV1<Balance> {
 	pub royalty_fee: Perbill,
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, Serialize, Deserialize)]
 pub struct NftAssetData<Balance> {
 	// Deposit balance to create each token
 	pub deposit: Balance,
@@ -105,8 +99,7 @@ pub struct NftAssetData<Balance> {
 	pub is_locked: bool,
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, Serialize, Deserialize)]
 pub struct NftAssetDataV1<Balance> {
 	// Deposit balance to create each token
 	pub deposit: Balance,
