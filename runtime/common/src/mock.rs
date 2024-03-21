@@ -16,7 +16,7 @@ use pallet_evm::{
 	EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, IsPrecompileResult, Precompile, PrecompileSet,
 };
 use pallet_evm::{PrecompileHandle, PrecompileOutput};
-use sp_core::{ConstU128, ConstU32, MaxEncodedLen, H160, H256, U256};
+use sp_core::{ConstU128, ConstU32, ConstU8, MaxEncodedLen, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Verify};
 use sp_runtime::{AccountId32, DispatchError, MultiSignature, Perbill, RuntimeDebug};
 
@@ -42,7 +42,7 @@ pub type AccountId = AccountId32;
 //pub type ClassId = u32;
 pub type AssetId = u128;
 pub type Balance = u128;
-pub type BlockNumber = u32;
+pub type BlockNumber = u64;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 pub type Block = frame_system::mocking::MockBlock<Runtime>;
 type Signature = MultiSignature;
@@ -93,9 +93,9 @@ parameter_types! {
 }
 
 impl pallet_timestamp::Config for Runtime {
-	type Moment = ();
+	type Moment = u64;
 	type OnTimestampSet = ();
-	type MinimumPeriod = MinimumPeriod;
+	type MinimumPeriod = frame_support::traits::ConstU64<1000>;
 	type WeightInfo = ();
 }
 
@@ -319,7 +319,7 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<AccountId32, Self::Balance, u32>> {
+	fn auction_info(_id: AuctionId) -> Option<AuctionInfo<AccountId32, Self::Balance, BlockNumber>> {
 		None
 	}
 
@@ -327,7 +327,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<AccountId32, Self::Balance, u32>) -> DispatchResult {
+	fn update_auction(_id: AuctionId, _info: AuctionInfo<AccountId32, Self::Balance, BlockNumber>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -338,27 +338,27 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn new_auction(
 		_recipient: AccountId32,
 		_initial_amount: Self::Balance,
-		_start: u32,
-		_end: Option<u32>,
-	) -> Result<u64, DispatchError> {
+		_start: BlockNumber,
+		_end: Option<BlockNumber>,
+	) -> Result<AuctionId, DispatchError> {
 		Ok(0)
 	}
 
 	fn create_auction(
 		_auction_type: AuctionType,
 		_item_id: ItemId<Balance>,
-		_end: Option<u32>,
+		_end: Option<BlockNumber>,
 		_recipient: AccountId32,
 		_initial_amount: Self::Balance,
-		_start: u32,
+		_start: BlockNumber,
 		_listing_level: ListingLevel<AccountId>,
 		_listing_fee: Perbill,
 		_currency_id: FungibleTokenId,
-	) -> Result<u64, DispatchError> {
+	) -> Result<AuctionId, DispatchError> {
 		Ok(0)
 	}
 
-	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
+	fn remove_auction(_id: AuctionId, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(_from: AccountId, _id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
@@ -370,7 +370,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn local_auction_bid_handler(
 		_: BlockNumber,
-		_: u64,
+		_: AuctionId,
 		_: (
 			AccountId,
 			<Self as auction_manager::Auction<AccountId, BlockNumber>>::Balance,

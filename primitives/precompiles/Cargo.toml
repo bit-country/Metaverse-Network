@@ -51,4 +51,4 @@ std = [
     "sp-std/std",
     "sp-runtime/std",
 ]
-#testing = [ "similar-asserts", "std" ]
+testing = [ "similar-asserts", "std" ]

@@ -93,7 +93,7 @@ impl pallet_balances::Config for Runtime {
 	type MaxLocks = ();
 	type WeightInfo = ();
 	type MaxReserves = ();
-	type ReserveIdentifier = ();
+	type ReserveIdentifier = [u8; 8];
 	type RuntimeHoldReason = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = frame_support::traits::ConstU32<0>;
@@ -102,7 +102,7 @@ impl pallet_balances::Config for Runtime {
 
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
-		Default::default()
+		0
 	};
 }
 
@@ -127,7 +127,7 @@ parameter_types! {
 	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account_truncating();
 }
 
-pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
 
 impl orml_currencies::Config for Runtime {
 	type MultiCurrency = Tokens;
@@ -135,6 +135,7 @@ impl orml_currencies::Config for Runtime {
 	type GetNativeCurrencyId = GetNativeCurrencyId;
 	type WeightInfo = ();
 }
+pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;

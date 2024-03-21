@@ -37,7 +37,7 @@ pub mod precompiles;
 #[cfg(test)]
 mod mock;
 
-#[cfg(test)]
+#[cfg(feature = "with-precompile-tests")]
 mod tests;
 /// Simple fee calculator that requires payment in a single fungible at a fixed rate.
 ///

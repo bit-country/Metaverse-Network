@@ -108,3 +108,4 @@ std = [
     "pallet-balances/std",
     "pallet-proxy/std",
 ]
+with-precompile-tests = ["precompile-utils/testing"]
