@@ -16,8 +16,10 @@
 # chopsticks DB
 db.sqlite
 
-# subalfred logs
+# subalfred
 subalfred
+# subalfred logs
+list
 
 .vscode
 *.code-workspace

@@ -95,6 +95,10 @@ run-chopsticks-pioneer:
 run-chopsticks-pioneer-xcm:
 	npx @acala-network/chopsticks xcm -r kusama -p statemine -p scripts/chopsticks/chopsticks_pioneer.yml
 
+.PHONY: check-missing-std-dependencies
+check-missing-std-dependencies:
+	cargo install subalfred && ./scripts/subalfred-check.sh "benchmarking|frame-try-runtime|frame-std"
+
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))
 
