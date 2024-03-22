@@ -1,8 +1,8 @@
 FROM rust:buster as builder
 WORKDIR /app
 
-RUN rustup default nightly-2023-05-22 && \
-        rustup target add wasm32-unknown-unknown --toolchain nightly-2023-05-22
+RUN rustup default nightly-2023-11-01 && \
+        rustup target add wasm32-unknown-unknown --toolchain nightly-2023-11-01
 
 RUN apt-get update && \
 	apt-get dist-upgrade -y -o Dpkg::Options::="--force-confold" && \
@@ -16,8 +16,8 @@ ARG PROFILE=release
 FROM rust:buster as builder
 WORKDIR /app
 
-RUN rustup default nightly-2023-05-22 && \
-        rustup target add wasm32-unknown-unknown --toolchain nightly-2023-05-22
+RUN rustup default nightly-2023-11-01 && \
+        rustup target add wasm32-unknown-unknown --toolchain nightly-2023-11-01
 
 RUN apt-get update && \
         apt-get dist-upgrade -y -o Dpkg::Options::="--force-confold" && \

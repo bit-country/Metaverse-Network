@@ -78,7 +78,7 @@ where
 		}
 	}
 
-	fn is_precompile(&self, _address: H160, gas: u64) -> IsPrecompileResult {
+	fn is_precompile(&self, _address: H160, _gas: u64) -> IsPrecompileResult {
 		//		sp_std::vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1025, 1026, 1027, 400]
 		//			.into_iter()
 		//			.map(hash)

@@ -31,15 +31,18 @@ pub use fp_evm::GenesisAccount;
 use fp_rpc::TransactionStatus;
 // use metaverse::weights::WeightInfo;
 #[cfg(feature = "runtime-benchmarks")]
-use frame_benchmarking::frame_support::pallet_prelude::Get;
+use frame_support::pallet_prelude::Get;
 pub use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime,
+	dispatch::DispatchInfo,
+	pallet_prelude::DispatchClass,
+	parameter_types,
 	traits::{ConstU32, EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo, WithdrawReasons},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-		ConstantMultiplier, DispatchClass, DispatchInfo, IdentityFee, Weight, WeightToFeePolynomial,
+		ConstantMultiplier, IdentityFee, Weight, WeightToFeePolynomial,
 	},
-	PalletId, RuntimeDebug, StorageValue,
+	PalletId, StorageValue,
 };
 use frame_support::{BoundedVec, ConsensusEngineId};
 // A few exports that help ease life for downstream crates.
@@ -83,7 +86,7 @@ use sp_runtime::{
 		IdentifyAccount, NumberFor, OpaqueKeys, PostDispatchInfoOf, UniqueSaturatedInto, Verify, Zero,
 	},
 	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError},
-	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Perbill, Percent, Permill, Perquintill,
+	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Perbill, Percent, Permill, Perquintill, RuntimeDebug,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -327,16 +330,14 @@ impl frame_system::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
 	type Lookup = AccountIdLookup<AccountId, ()>;
-	/// The index type for storing how many extrinsics an account has signed.
-	type Index = Index;
-	/// The index type for blocks.
-	type BlockNumber = BlockNumber;
+	/// The nonce type for storing how many extrinsics an account has signed.
+	type Nonce = Index;
+	/// The type for blocks.
+	type Block = Block;
 	/// The type for hashing blocks and tries.
 	type Hash = Hash;
 	/// The hashing algorithm used.
 	type Hashing = BlakeTwo256;
-	/// The header type.
-	type Header = generic::Header<BlockNumber, BlakeTwo256>;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
 	/// The ubiquitous origin type.
@@ -358,7 +359,7 @@ impl frame_system::Config for Runtime {
 	/// The data to be stored in an account.
 	type AccountData = pallet_balances::AccountData<Balance>;
 	/// Weight information for the extrinsics of this pallet.
-	type SystemWeightInfo = ();
+	type SystemWeightInfo = frame_system::weights::SubstrateWeight<Runtime>;
 	/// This is used as an identifier of the chain. 42 is the generic substrate prefix.
 	type SS58Prefix = SS58Prefix;
 	/// The set code logic, just the default since we're not a parachain.
@@ -389,6 +390,9 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type MaxAuthorities = MaxAuthorities;
 	type DisabledValidators = ();
+	// Should be only enabled (`true`) when async backing is enabled
+	// otherwise set to `false`
+	type AllowMultipleBlocksPerSlot = ConstBool<false>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -398,6 +402,7 @@ impl pallet_grandpa::Config for Runtime {
 	type WeightInfo = ();
 	type MaxAuthorities = MaxAuthorities;
 	type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
+	type MaxNominators = ConstU32<0>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -436,8 +441,8 @@ impl pallet_balances::Config for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-	type HoldIdentifier = ();
-	type FreezeIdentifier = ();
+	type RuntimeHoldReason = pallet_contracts::pallet::HoldReason;
+	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
 }
@@ -839,14 +844,14 @@ impl pallet_collator_selection::Config for Runtime {
 	type UpdateOrigin = EnsureRoot<AccountId>;
 	type PotId = PotId;
 	type MaxCandidates = MaxCandidates;
-	type MinCandidates = MinCandidates;
+	type MinEligibleCollators = MinCandidates;
 	type MaxInvulnerables = MaxInvulnerables;
 	// should be a multiple of session or things will get inconsistent
 	type KickThreshold = Period;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
 	type ValidatorRegistration = Session;
-	type WeightInfo = ();
+	type WeightInfo = pallet_collator_selection::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1213,7 +1218,7 @@ parameter_types! {
 		NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS
 	);
 	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
-	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
+	pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
 	pub const GasLimitPovSizeRatio: u64 = 4;
 }
 
@@ -1337,6 +1342,8 @@ parameter_types! {
 	pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
 	// Fallback value if storage deposit limit not set by the user
 	pub const DefaultDepositLimit: Balance = deposit(16, 16 * 1024);
+	pub const MaxDelegateDependencies: u32 = 32;
+   pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(10);
 }
 
 impl pallet_contracts::Config for Runtime {
@@ -1365,6 +1372,12 @@ impl pallet_contracts::Config for Runtime {
 	type MaxStorageKeyLen = ConstU32<1024>;
 	type UnsafeUnstableInterface = ConstBool<false>;
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
+	type MaxDelegateDependencies = MaxDelegateDependencies;
+	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+	type RuntimeHoldReason = pallet_contracts::pallet::HoldReason;
+	type Debug = ();
+	type Environment = ();
+	type Migrations = ();
 }
 
 // Treasury and Bounty
@@ -1513,11 +1526,11 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		// Core
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Aura: pallet_aura::{Pallet, Config<T>},
-		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
+		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config<T>, Event},
 		Utility: pallet_utility::{Pallet, Call, Event},
 
 		// Governance
@@ -1542,7 +1555,7 @@ construct_runtime!(
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining::{Pallet, Call, Storage ,Event<T>},
 		Reward: reward::{Pallet, Call, Storage ,Event<T>},
-		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
+		Estate: estate::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Economy: economy::{Pallet, Call, Storage, Event<T>},
 		Emergency: emergency::{Pallet, Call, Storage, Event<T>},
 		RewardOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
@@ -1558,18 +1571,18 @@ construct_runtime!(
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>},
 
-		EVM: pallet_evm::{Pallet, Call, Storage, Config, Event<T>},
-		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin},
+		EVM: pallet_evm::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config<T>, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
 		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
-		EvmChainId: pallet_evm_chain_id::{Pallet, Storage, Config},
+		EvmChainId: pallet_evm_chain_id::{Pallet, Storage, Config<T>},
 
 		// ink! Smart Contracts.
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
 
 		// Technical committee
 		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>},
-		Treasury: pallet_treasury::{Pallet, Storage, Config, Event<T>, Call},
+		Treasury: pallet_treasury::{Pallet, Storage, Config<T>, Event<T>, Call},
 
 		// Asset manager
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
@@ -2199,7 +2212,8 @@ impl_runtime_apis! {
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
+			use frame_support::traits::TrackedStorageKey;
+			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark};
 			use orml_benchmarking::add_benchmark as orml_add_benchmark;
 
 			use frame_system_benchmarking::Pallet as SystemBench;

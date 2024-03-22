@@ -92,7 +92,7 @@ impl RunCmd {
 	/// Create [`CollatorOptions`] representing options only relevant to parachain collator nodes
 	pub fn collator_options(&self) -> cumulus_client_cli::CollatorOptions {
 		cumulus_client_cli::CollatorOptions {
-			relay_chain_rpc_urls: self.relay_chain_rpc_urls.clone().into(),
+			relay_chain_mode: cumulus_client_cli::RelayChainMode::ExternalRpc(self.relay_chain_rpc_urls.clone().into()),
 		}
 	}
 }

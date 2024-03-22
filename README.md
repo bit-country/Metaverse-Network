@@ -26,19 +26,13 @@ MNET (Metaverse.Network), featuring a seamlessly integrated enriched social laye
 
 # 2. Build
 
-Install Rust and Wasm build environment:
-
-```bash
-make init
-```
-
 Build Wasm and native code:
 
 ```bash
 make build
 ```
 
-# 3. Run
+# 2. Run
 
 ### Start a Dev Metaverse Network Chain
 

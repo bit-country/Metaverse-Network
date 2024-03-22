@@ -24,15 +24,9 @@ jobs:
       - name: Set-Up
         run: sudo apt install -y protobuf-compiler cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
 
-      - name: Install Rustup
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
-          source ~/.cargo/env
-          rustup default nightly && rustup update
-          rustup default nightly-2023-05-22
-          rustup target add wasm32-unknown-unknown --toolchain nightly-2023-05-22
-      - name: Check Rust version
-        run: rustup show      
+      - name: Install Rust version specified in rust-toolchain.toml
+        run: rustup show
+
       - name: Run all test cases
         run: |
-          SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime
+          SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime,with-precompile-tests

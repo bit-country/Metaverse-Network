@@ -20,7 +20,7 @@
 use frame_support::pallet_prelude::*;
 use frame_support::{
 	dispatch::DispatchResult,
-	ensure, log,
+	ensure,
 	traits::{Currency, ExistenceRequirement, Get},
 	transactional, PalletId,
 };
@@ -97,7 +97,7 @@ pub mod pallet {
 		type CouncilOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// Auction handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
+		type AuctionHandler: Auction<Self::AccountId, BlockNumberFor<Self>> + CheckAuctionItemHandler<BalanceOf<Self>>;
 
 		/// Minimum number of blocks per round
 		#[pallet::constant]
@@ -146,7 +146,7 @@ pub mod pallet {
 		type StorageDepositFee: Get<BalanceOf<Self>>;
 
 		/// Allows converting block numbers into balance
-		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
+		type BlockNumberToBalance: Convert<BlockNumberFor<Self>, BalanceOf<Self>>;
 	}
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -215,7 +215,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn round)]
 	/// Current round index and next round scheduled transition
-	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<BlockNumberFor<T>>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn minting_rate_config)]
@@ -226,7 +226,7 @@ pub mod pallet {
 	#[pallet::getter(fn leases)]
 	/// Current active estate leases
 	pub type EstateLeases<T: Config> =
-		StorageMap<_, Twox64Concat, EstateId, LeaseContract<BalanceOf<T>, T::BlockNumber>, OptionQuery>;
+		StorageMap<_, Twox64Concat, EstateId, LeaseContract<BalanceOf<T>, BlockNumberFor<T>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn leasors)]
@@ -243,37 +243,31 @@ pub mod pallet {
 		EstateId,
 		Blake2_128Concat,
 		T::AccountId,
-		LeaseContract<BalanceOf<T>, T::BlockNumber>,
+		LeaseContract<BalanceOf<T>, BlockNumberFor<T>>,
 		OptionQuery,
 	>;
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig {
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T: Config> {
 		pub minting_rate_config: MintingRateInfo,
-	}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			GenesisConfig {
-				minting_rate_config: Default::default(),
-			}
-		}
+		#[serde(skip)]
+		pub _config: PhantomData<T>,
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			<MintingRateConfig<T>>::put(self.minting_rate_config.clone());
 
 			// Start Round 1 at Block 0
-			let round: RoundInfo<T::BlockNumber> = RoundInfo::new(1u32, 0u32.into(), T::MinBlocksPerRound::get());
+			let round: RoundInfo<BlockNumberFor<T>> = RoundInfo::new(1u32, 0u32.into(), T::MinBlocksPerRound::get());
 
 			let round_issuance_per_round = round_issuance_range::<T>(self.minting_rate_config.clone());
 
 			<Round<T>>::put(round);
 			<Pallet<T>>::deposit_event(Event::NewRound(
-				T::BlockNumber::zero(),
+				BlockNumberFor::<T>::zero(),
 				1u32,
 				round_issuance_per_round.max,
 			));
@@ -331,7 +325,7 @@ pub mod pallet {
 		/// Estate lease offer is created [AccountId, Estate Id, Total rent]
 		EstateLeaseOfferCreated(T::AccountId, EstateId, BalanceOf<T>),
 		/// Estate lease offer is accepted [Estate Id, Leasor account Id, Lease End Block]
-		EstateLeaseOfferAccepted(EstateId, T::AccountId, T::BlockNumber),
+		EstateLeaseOfferAccepted(EstateId, T::AccountId, BlockNumberFor<T>),
 		/// Estate lease offer is removed [AccountId, Estate Id]
 		EstateLeaseOfferRemoved(T::AccountId, EstateId),
 		/// Estate lease contract ended [Estate Id]
@@ -341,7 +335,7 @@ pub mod pallet {
 		/// Estate rent collected [EstateId, Balance]
 		EstateRentCollected(EstateId, BalanceOf<T>),
 		/// New staking round started [Starting Block, Round, Total Land Unit]
-		NewRound(T::BlockNumber, RoundIndex, u64),
+		NewRound(BlockNumberFor<T>, RoundIndex, u64),
 	}
 
 	#[pallet::error]
@@ -439,7 +433,7 @@ pub mod pallet {
 	// TO DO: Implement offchain removal of expired lease offers
 	//#[pallet::hooks]
 	//impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-	//	fn offchain_worker(block_number: T::BlockNumber) {
+	//	fn offchain_worker(block_number: BlockNumberFor<T>) {
 	//	}
 	//}
 
@@ -929,7 +923,7 @@ pub mod pallet {
 			UndeployedLandBlocks::<T>::try_mutate_exists(
 				&undeployed_land_block_id,
 				|undeployed_land_block| -> DispatchResultWithPostInfo {
-					let mut undeployed_land_block_record = undeployed_land_block
+					let undeployed_land_block_record = undeployed_land_block
 						.as_mut()
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
@@ -982,7 +976,7 @@ pub mod pallet {
 			UndeployedLandBlocks::<T>::try_mutate_exists(
 				&undeployed_land_block_id,
 				|undeployed_land_block| -> DispatchResultWithPostInfo {
-					let mut undeployed_land_block_record = undeployed_land_block
+					let undeployed_land_block_record = undeployed_land_block
 						.as_mut()
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
@@ -2127,7 +2121,7 @@ impl<T: Config> Pallet<T> {
 		NextEstateId::<T>::put(1);
 		AllLandUnitsCount::<T>::put(0);
 		AllEstatesCount::<T>::put(0);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 
 	fn collect_network_fee(

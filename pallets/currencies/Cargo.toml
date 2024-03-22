@@ -1,15 +1,15 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet for tokenization logic.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'currencies'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network pallet for tokenization logic."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "currencies"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 
@@ -38,16 +38,19 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
 ]
-default = ['std']
+default = ["std"]
 std = [
-    'codec/std',
-    'frame-support/std',
-    'frame-system/std',
-    'sp-runtime/std',
-    'sp-core/std',
-    'sp-io/std',
-    'sp-std/std',
-    'orml-traits/std',
-    'primitives/std',
+    "frame-benchmarking/std",
+    "codec/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-runtime/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-std/std",
+    "orml-traits/std",
+    "primitives/std",
+    "core-primitives/std",
     "scale-info/std",
+    "pallet-balances/std",
 ]

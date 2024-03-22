@@ -69,6 +69,8 @@ substrate-wasm-builder = { workspace = true }
 default = ["std"]
 std = [
     "codec/std",
+    "scale-info/std",
+    "num_enum/std",
     "serde",
     "sp-core/std",
     "sp-runtime/std",
@@ -104,5 +106,6 @@ std = [
     "xcm-builder/std",
     "pallet-timestamp/std",
     "pallet-balances/std",
-    'pallet-proxy/std',
+    "pallet-proxy/std",
 ]
+with-precompile-tests = ["precompile-utils/testing"]

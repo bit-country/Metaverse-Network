@@ -9,7 +9,7 @@ repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
 [dependencies]
-serde = { workspace = true, optional = true, features = ["derive"] }
+serde = { workspace = true }
 codec = { workspace = true, package = "parity-scale-codec" }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
@@ -20,7 +20,8 @@ scale-info = { workspace = true }
 [features]
 default = ['std']
 std = [
-    'serde',
+    'serde/std',
+    'primitives/std',
     'codec/std',
     'sp-runtime/std',
     'sp-std/std',

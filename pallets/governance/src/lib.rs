@@ -36,6 +36,7 @@ use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
 use sp_runtime::{Perbill, SaturatedConversion};
 use sp_std::prelude::*;
 
+use frame_system::pallet_prelude::BlockNumberFor;
 use metaverse_primitive::MetaverseTrait;
 pub use pallet::*;
 use primitives::{MetaverseId, ProposalId, ReferendumId};
@@ -73,7 +74,7 @@ pub mod pallet {
 
 		/// Constant equivalent to one block
 		#[pallet::constant]
-		type OneBlock: Get<Self::BlockNumber>;
+		type OneBlock: Get<BlockNumberFor<Self>>;
 
 		/// Default preimage byte deposit
 		#[pallet::constant]
@@ -105,7 +106,7 @@ pub mod pallet {
 
 		/// Native currency type that handles voting
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 
 		/// Slashing handler
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
@@ -126,7 +127,7 @@ pub mod pallet {
 		type ProposalType: Parameter + Member + Default + InstanceFilter<Self::Proposal>;
 
 		/// The Scheduler.
-		type Scheduler: ScheduleNamed<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
+		type Scheduler: ScheduleNamed<BlockNumberFor<Self>, Self::Proposal, Self::PalletsOrigin>;
 
 		/// Metaverse Council which collective of members
 		type MetaverseCouncil: EnsureOrigin<Self::RuntimeOrigin>;
@@ -154,7 +155,7 @@ pub mod pallet {
 		MetaverseId,
 		Identity,
 		T::Hash,
-		PreimageStatus<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		PreimageStatus<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>,
 		OptionQuery,
 	>;
 
@@ -167,7 +168,7 @@ pub mod pallet {
 		MetaverseId,
 		Twox64Concat,
 		ProposalId,
-		ProposalInfo<T::AccountId, T::BlockNumber, T::Hash>,
+		ProposalInfo<T::AccountId, BlockNumberFor<T>, T::Hash>,
 		OptionQuery,
 	>;
 
@@ -195,7 +196,7 @@ pub mod pallet {
 		MetaverseId,
 		Twox64Concat,
 		ReferendumId,
-		ReferendumInfo<T::BlockNumber, BalanceOf<T>, T::Hash>,
+		ReferendumInfo<BlockNumberFor<T>, BalanceOf<T>, T::Hash>,
 		OptionQuery,
 	>;
 
@@ -208,13 +209,13 @@ pub mod pallet {
 	#[pallet::getter(fn referendum_parameters)]
 	/// Store local governance referendum parameters for each metaverse
 	pub type ReferendumParametersOf<T: Config> =
-		StorageMap<_, Twox64Concat, MetaverseId, ReferendumParameters<T::BlockNumber>, OptionQuery>;
+		StorageMap<_, Twox64Concat, MetaverseId, ReferendumParameters<BlockNumberFor<T>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn voting_record)]
 	/// Store voting records for each account
 	pub type VotingOf<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, VotingRecord<BalanceOf<T>, T::BlockNumber>, ValueQuery>;
+		StorageMap<_, Twox64Concat, T::AccountId, VotingRecord<BalanceOf<T>, BlockNumberFor<T>>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -335,7 +336,7 @@ pub mod pallet {
 		pub fn update_referendum_parameters(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
-			new_referendum_parameters: ReferendumParameters<T::BlockNumber>,
+			new_referendum_parameters: ReferendumParameters<BlockNumberFor<T>>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
@@ -673,7 +674,7 @@ pub mod pallet {
 							Some(ReferendumInfo::Finished { end, passed, title: _ }) => {
 								let prior = &mut voting_record.prior;
 								if let Some((lock_periods, balance)) = vote.locked_if(passed) {
-									let mut lock_value: T::BlockNumber =
+									let mut lock_value: BlockNumberFor<T> =
 										ReferendumParameters::default().local_vote_locking_period;
 									match Self::referendum_parameters(metaverse) {
 										Some(metaverse_referendum_params) => {
@@ -765,9 +766,9 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		/// Hooks that call every new block finalized.
-		fn on_finalize(now: T::BlockNumber) {
+		fn on_finalize(now: BlockNumberFor<T>) {
 			for (metaverse_id, referendum_id, referendum_info) in <ReferendumInfoOf<T>>::iter() {
 				match referendum_info {
 					ReferendumInfo::Ongoing(status) => {
@@ -846,12 +847,12 @@ impl<T: Config> Pallet<T> {
 		proposal_id: ProposalId,
 		proposal_hash: T::Hash,
 		proposal_description: Vec<u8>,
-		current_block: T::BlockNumber,
+		current_block: BlockNumberFor<T>,
 	) -> Result<u64, DispatchError> {
 		let referendum_id = Self::get_next_referendum_id()?;
 
 		let referendum_end;
-		let mut referendum_threshold = ReferendumParameters::<T::BlockNumber>::default()
+		let mut referendum_threshold = ReferendumParameters::<BlockNumberFor<T>>::default()
 			.voting_threshold
 			.ok_or("Invalid Default Referendum Threshold")?;
 		match Self::referendum_parameters(metaverse_id) {
@@ -893,7 +894,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Table the waiting public proposal with the highest backing for a vote.
-	fn launch_public(_now: T::BlockNumber, metaverse_id: MetaverseId) -> DispatchResult {
+	fn launch_public(_now: BlockNumberFor<T>, metaverse_id: MetaverseId) -> DispatchResult {
 		let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
 		if let Some((_, proposal)) = Proposals::<T>::iter_prefix(metaverse_id).enumerate().max_by_key(
 			// defensive only: All current public proposals have an amount locked
@@ -944,7 +945,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Internal getter of referendum launch block for a metaverse
-	fn get_proposal_launch_block(metaverse_id: MetaverseId) -> Result<T::BlockNumber, DispatchError> {
+	fn get_proposal_launch_block(metaverse_id: MetaverseId) -> Result<BlockNumberFor<T>, DispatchError> {
 		let current_block = <frame_system::Pallet<T>>::block_number();
 		match Self::referendum_parameters(metaverse_id) {
 			Some(metaverse_referendum_params) => {
@@ -962,7 +963,7 @@ impl<T: Config> Pallet<T> {
 			None => {
 				ensure!(
 					Self::proposals_per_metaverse(metaverse_id)
-						< ReferendumParameters::<T::BlockNumber>::default().max_proposals_per_metaverse,
+						< ReferendumParameters::<BlockNumberFor<T>>::default().max_proposals_per_metaverse,
 					Error::<T>::ProposalQueueFull
 				);
 				Ok(current_block + ReferendumParameters::default().min_proposal_launch_period)
@@ -990,15 +991,15 @@ impl<T: Config> Pallet<T> {
 	fn referendum_status(
 		metaverse_id: MetaverseId,
 		referendum_id: ReferendumId,
-	) -> Result<ReferendumStatus<T::BlockNumber, BalanceOf<T>, T::Hash>, DispatchError> {
+	) -> Result<ReferendumStatus<BlockNumberFor<T>, BalanceOf<T>, T::Hash>, DispatchError> {
 		let info = Self::referendum_info(metaverse_id, referendum_id).ok_or(Error::<T>::ReferendumDoesNotExist)?;
 		Self::ensure_ongoing(info.into())
 	}
 
 	/// Ok if the given referendum is active, Err otherwise
 	fn ensure_ongoing(
-		r: ReferendumInfo<T::BlockNumber, BalanceOf<T>, T::Hash>,
-	) -> Result<ReferendumStatus<T::BlockNumber, BalanceOf<T>, T::Hash>, DispatchError> {
+		r: ReferendumInfo<BlockNumberFor<T>, BalanceOf<T>, T::Hash>,
+	) -> Result<ReferendumStatus<BlockNumberFor<T>, BalanceOf<T>, T::Hash>, DispatchError> {
 		match r {
 			ReferendumInfo::Ongoing(s) => Ok(s),
 			_ => Err(Error::<T>::ReferendumIsOver.into()),
@@ -1009,7 +1010,7 @@ impl<T: Config> Pallet<T> {
 	fn finalize_vote(
 		metaverse_id: MetaverseId,
 		referendum_id: ReferendumId,
-		referendum_status: ReferendumStatus<T::BlockNumber, BalanceOf<T>, T::Hash>,
+		referendum_status: ReferendumStatus<BlockNumberFor<T>, BalanceOf<T>, T::Hash>,
 	) -> DispatchResult {
 		// Check if referendum passes
 		let total_issuance = T::Currency::total_issuance();

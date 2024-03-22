@@ -17,13 +17,12 @@
 
 #![cfg(test)]
 
-use frame_support::{assert_err, assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok};
 use pallet_balances::BalanceLock;
-use sp_runtime::traits::BadOrigin;
-use sp_runtime::{Perbill, Permill};
 
-use mock::{RuntimeEvent, *};
-use primitives::bounded::FractionalRate;
+use mock::*;
+
+use sp_runtime::traits::BlockNumberProvider;
 
 use crate::utils::{BoostInfo, BoostingConviction, BoostingRecord, PoolInfo, PriorLock};
 
@@ -488,8 +487,8 @@ fn boosting_works() {
 				)],
 				prior: PriorLock(1, 11000),
 			};
-			let view_votes = &second_boosting_of.votes;
-			let debug_votes = &second_boosting_of.votes[0];
+			let _view_votes = &second_boosting_of.votes;
+			let _debug_votes = &second_boosting_of.votes[0];
 			assert_eq!(second_boosting_of, second_boosting_record);
 
 			// Third boosting with lower balance than previous boost

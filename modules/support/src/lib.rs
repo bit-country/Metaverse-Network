@@ -19,20 +19,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::upper_case_acronyms)]
 
-use codec::{Decode, Encode, FullCodec};
-use frame_support::pallet_prelude::{DispatchClass, Pays, Weight};
-use primitives::CurrencyId;
-use sp_core::H160;
-use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, CheckedDiv, MaybeSerializeDeserialize},
-	transaction_validity::TransactionValidityError,
-	DispatchError, DispatchResult, FixedU128, RuntimeDebug,
-};
-use sp_std::{
-	cmp::{Eq, PartialEq},
-	fmt::Debug,
-	prelude::*,
-};
+use codec::FullCodec;
+use frame_support::pallet_prelude::Weight;
+
+use sp_std::prelude::*;
 
 use xcm::latest::prelude::*;
 

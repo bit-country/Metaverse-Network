@@ -17,7 +17,9 @@
 
 #![cfg(test)]
 
+use frame_support::traits::VestingSchedule;
 use frame_support::{assert_noop, assert_ok};
+use pallet_vesting::VestingInfo;
 use sp_runtime::traits::BadOrigin;
 
 use mock::{RuntimeEvent, *};

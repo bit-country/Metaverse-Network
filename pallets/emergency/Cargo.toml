@@ -1,15 +1,15 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network emergency pallet.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-emergency'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network emergency pallet."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-emergency"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { workspace = true, package = "parity-scale-codec" }
@@ -35,9 +35,11 @@ runtime-benchmarks = [
 ]
 default = ["std"]
 std = [
+    "codec/std",
     "scale-info/std",
     "sp-runtime/std",
     "frame-support/std",
     "frame-system/std",
+    "frame-benchmarking/std",
     "sp-std/std",
 ]

@@ -21,15 +21,13 @@
 
 #![cfg(test)]
 
-use std::str::{from_utf8, FromStr};
+use std::str::FromStr;
 
 use frame_support::{assert_noop, assert_ok};
 use sp_core::H160;
 
 use mock::{AssetManager, CouncilAccount, ExtBuilder, Runtime, RuntimeEvent, RuntimeOrigin, System};
 use primitives::evm::{CurrencyIdType, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN};
-use primitives::FungibleTokenId::FungibleToken;
-use primitives::{TokenId, TokenSymbol};
 
 use super::*;
 

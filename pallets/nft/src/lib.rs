@@ -44,8 +44,8 @@ use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError,
 };
+use sp_std::prelude::*;
 use sp_std::vec::Vec;
-use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
@@ -66,7 +66,7 @@ pub mod weights;
 
 const TIMECAPSULE_ID: LockIdentifier = *b"bctimeca";
 
-#[derive(codec::Encode, codec::Decode, Clone, frame_support::RuntimeDebug, PartialEq)]
+#[derive(codec::Encode, codec::Decode, Clone, RuntimeDebug, PartialEq)]
 pub enum StorageVersion {
 	V0,
 	V1,
@@ -114,7 +114,7 @@ pub mod pallet {
 		/// Weight info
 		type WeightInfo: WeightInfo;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
+		type AuctionHandler: Auction<Self::AccountId, BlockNumberFor<Self>> + CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Max transfer batch
 		#[pallet::constant]
 		type MaxBatchTransfer: Get<u32>;
@@ -219,17 +219,13 @@ pub mod pallet {
 	>;
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig {}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			GenesisConfig {}
-		}
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T> {
+		pub _config: PhantomData<T>,
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// Pre-mint group collection for lands
 			let land_collection_data = NftGroupCollectionData {
@@ -284,7 +280,7 @@ pub mod pallet {
 			<T as frame_system::Config>::AccountId,
 			ClassIdOf<T>,
 			TokenIdOf<T>,
-			T::BlockNumber,
+			BlockNumberFor<T>,
 			Vec<u8>,
 		),
 		/// Successfully transfer NFT
@@ -319,7 +315,7 @@ pub mod pallet {
 		/// Executed NFT
 		ExecutedNft(AssetId),
 		/// Scheduled time capsule
-		ScheduledTimeCapsule(AssetId, Vec<u8>, T::BlockNumber),
+		ScheduledTimeCapsule(AssetId, Vec<u8>, BlockNumberFor<T>),
 		/// Collection is locked
 		CollectionLocked(ClassIdOf<T>),
 		/// Collection is unlocked
@@ -913,7 +909,7 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Tokens::<T>::try_mutate_exists(&token_id.0, &token_id.1, |maybe_token_info| -> DispatchResult {
-				let mut token_info_result = maybe_token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
+				let token_info_result = maybe_token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
 				token_info_result.data.is_locked = false;
 				Self::deposit_event(Event::<T>::NftUnlocked(token_id.0, token_id.1));
 
@@ -1034,10 +1030,10 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		//		fn on_runtime_upgrade() -> Weight {
 		//			Self::storage_migration_fix_locking_issue();
-		//			Weight::from_ref_time(0)
+		//			Weight::from_parts(0, 0)
 		//		}
 	}
 }
@@ -1319,7 +1315,7 @@ impl<T: Config> Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 		is_locked: bool,
-	) -> Result<((ClassIdOf<T>, TokenIdOf<T>)), DispatchError> {
+	) -> Result<(ClassIdOf<T>, TokenIdOf<T>), DispatchError> {
 		let minted_token_id =
 			Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked)?;
 		let nft_proxy_account: T::AccountId =
@@ -1499,7 +1495,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 
 	/// Upgrading lock of each nft
@@ -1534,7 +1530,7 @@ impl<T: Config> Pallet<T> {
 			},
 		);
 		log::info!("Tokens upgraded: {}", num_nft_tokens);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 }
 

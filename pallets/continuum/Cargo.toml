@@ -1,15 +1,15 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet for country logic.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-continuum'
-repository = 'https://github.com/bit-country'
-version = '0.0.1'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network pallet for country logic."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-continuum"
+repository = "https://github.com/bit-country"
+version = "0.0.1"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { workspace = true, optional = true, default-features = false, features = ["derive"] }
@@ -36,28 +36,36 @@ orml-nft = { workspace = true }
 
 # Other pallets
 
-pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft' }
-pallet-metaverse = { default-features = false, package = 'pallet-metaverse', path = '../metaverse' }
-auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
+pallet-nft = { default-features = false, package = "pallet-nft", path = "../nft" }
+pallet-metaverse = { default-features = false, package = "pallet-metaverse", path = "../metaverse" }
+auction-manager = { default-features = false, package = "auction-manager", path = "../../traits/auction-manager" }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 
 
 [features]
-default = ['std']
+default = ["std"]
 std = [
-    'serde',
-    'codec/std',
-    'sp-runtime/std',
-    'frame-support/std',
-    'frame-system/std',
-    'sp-core/std',
-    'sp-io/std',
-    'sp-std/std',
-    'orml-traits/std',
-    'orml-tokens/std',
-    'pallet-nft/std',
-    'auction-manager/std',
-    'primitives/std',
-    'sp-arithmetic/std',
+    "serde",
+    "codec/std",
+    "sp-runtime/std",
+    "frame-support/std",
+    "frame-system/std",
+    "frame-executive/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-std/std",
+    "sp-session/std",
+    "sp-inherents/std",
+    "orml-traits/std",
+    "orml-tokens/std",
+    "orml-nft/std",
+    "orml-currencies/std",
+    "pallet-balances/std",
+    "pallet-nft/std",
+    "pallet-metaverse/std",
+    "auction-manager/std",
+    "primitives/std",
+    "core-primitives/std",
+    "sp-arithmetic/std",
     "scale-info/std",
 ]

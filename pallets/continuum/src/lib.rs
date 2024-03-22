@@ -52,7 +52,7 @@ use frame_support::{
 	traits::{Currency, Get, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
-use frame_system::{ensure_root, ensure_signed};
+use frame_system::{ensure_root, ensure_signed, pallet_prelude::BlockNumberFor};
 use scale_info::TypeInfo;
 
 use sp_runtime::{traits::AccountIdConversion, DispatchError, Perbill, RuntimeDebug};
@@ -127,25 +127,25 @@ pub mod pallet {
 		/// How long the new auction slot will be released. If set to zero, no new auctions are
 		/// generated
 		#[pallet::constant]
-		type SessionDuration: Get<Self::BlockNumber>;
+		type SessionDuration: Get<BlockNumberFor<Self>>;
 		/// Auction Slot Chilling Duration
 		/// How long the participates in the New Auction Slots will get confirmed by neighbours
 		#[pallet::constant]
-		type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
+		type SpotAuctionChillingDuration: Get<BlockNumberFor<Self>>;
 		/// Emergency shutdown origin which allow cancellation in an emergency
 		type EmergencyOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber, Balance = BalanceOf<Self>>
+		type AuctionHandler: Auction<Self::AccountId, BlockNumberFor<Self>, Balance = BalanceOf<Self>>
 			+ CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Auction duration
 		#[pallet::constant]
-		type AuctionDuration: Get<Self::BlockNumber>;
+		type AuctionDuration: Get<BlockNumberFor<Self>>;
 		/// Continuum Treasury
 		#[pallet::constant]
 		type ContinuumTreasury: Get<PalletId>;
 		/// Currency
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 		/// Source of Metaverse Network Info
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 
@@ -212,15 +212,15 @@ pub mod pallet {
 		/// Emergency shutdown is on
 		ContinuumEmergencyShutdownEnabled(),
 		/// Start new referendum
-		NewContinuumReferendumStarted(T::BlockNumber, SpotId),
+		NewContinuumReferendumStarted(BlockNumberFor<T>, SpotId),
 		/// Start new good neighbourhood protocol round
-		NewContinuumNeighbourHoodProtocolStarted(T::BlockNumber, SpotId),
+		NewContinuumNeighbourHoodProtocolStarted(BlockNumberFor<T>, SpotId),
 		/// Spot transferred
 		ContinuumSpotTransferred(T::AccountId, T::AccountId, MapSpotId),
 		/// New max auction slot set
 		NewMaxAuctionSlotSet(u8),
 		/// Rotated new auction slot
-		NewAuctionSlotRotated(T::BlockNumber),
+		NewAuctionSlotRotated(BlockNumberFor<T>),
 		/// Finalize vote
 		FinalizedVote(SpotId),
 		/// New Map Spot issued
@@ -315,7 +315,7 @@ pub mod pallet {
 			spot_id: MapSpotId,
 			auction_type: AuctionType,
 			value: BalanceOf<T>,
-			end_time: T::BlockNumber,
+			end_time: BlockNumberFor<T>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

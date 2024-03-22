@@ -5,8 +5,7 @@ authors = ["Metaverse.Network & Bit.Country Developers"]
 edition = '2021'
 
 [dependencies]
-serde = { workspace = true, optional = true, features = ["derive"] }
-serde_json = { workspace = true }
+serde = { workspace = true, features = ["derive", "alloc"] }
 codec = { workspace = true, package = "parity-scale-codec" }
 scale-info = { workspace = true }
 hex-literal = { workspace = true }
@@ -20,16 +19,21 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 xcm = { workspace = true }
 
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [features]
 default = ["std"]
 std = [
-    "serde",
+    "serde/std",
+    "num_enum/std",
     "codec/std",
     "scale-info/std",
     "ethabi/std",
     "frame-system/std",
     "frame-support/std",
     "sp-application-crypto/std",
+    "sp-std/std",
     "sp-core/std",
     "sp-runtime/std",
     "xcm/std"

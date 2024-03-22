@@ -203,6 +203,7 @@ fn pioneer_genesis(
 ) -> pioneer_runtime::GenesisConfig {
 	pioneer_runtime::GenesisConfig {
 		system: pioneer_runtime::SystemConfig {
+			_config: Default::default(),
 			code: pioneer_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
@@ -214,6 +215,7 @@ fn pioneer_genesis(
 			key: Some(root_key.clone()),
 		},
 		parachain_info: pioneer_runtime::ParachainInfoConfig {
+			_config: Default::default(),
 			parachain_id: PARA_ID.into(),
 		},
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
@@ -238,6 +240,7 @@ fn pioneer_genesis(
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
 		estate: EstateConfig {
+			_config: Default::default(),
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {
@@ -255,6 +258,7 @@ fn testnet_genesis(
 ) -> pioneer_runtime::GenesisConfig {
 	pioneer_runtime::GenesisConfig {
 		system: pioneer_runtime::SystemConfig {
+			_config: Default::default(),
 			code: pioneer_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
@@ -270,6 +274,7 @@ fn testnet_genesis(
 			key: Some(root_key.clone()),
 		},
 		parachain_info: pioneer_runtime::ParachainInfoConfig {
+			_config: Default::default(),
 			parachain_id: ROC_PARA_ID.into(),
 		},
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
@@ -294,6 +299,7 @@ fn testnet_genesis(
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
 		estate: EstateConfig {
+			_config: Default::default(),
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {

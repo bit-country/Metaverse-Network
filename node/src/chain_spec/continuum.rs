@@ -201,6 +201,7 @@ fn continuum_genesis(
 ) -> continuum_runtime::GenesisConfig {
 	continuum_runtime::GenesisConfig {
 		system: continuum_runtime::SystemConfig {
+			_config: Default::default(),
 			code: continuum_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
@@ -212,6 +213,7 @@ fn continuum_genesis(
 			key: Some(root_key.clone()),
 		},
 		parachain_info: continuum_runtime::ParachainInfoConfig {
+			_config: Default::default(),
 			parachain_id: PARA_ID.into(),
 		},
 		collator_selection: continuum_runtime::CollatorSelectionConfig {
@@ -236,6 +238,7 @@ fn continuum_genesis(
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
 		estate: EstateConfig {
+			_config: Default::default(),
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {
@@ -254,6 +257,7 @@ fn testnet_genesis(
 ) -> continuum_runtime::GenesisConfig {
 	continuum_runtime::GenesisConfig {
 		system: continuum_runtime::SystemConfig {
+			_config: Default::default(),
 			code: continuum_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
@@ -268,7 +272,10 @@ fn testnet_genesis(
 		sudo: continuum_runtime::SudoConfig {
 			key: Some(root_key.clone()),
 		},
-		parachain_info: continuum_runtime::ParachainInfoConfig { parachain_id: id },
+		parachain_info: continuum_runtime::ParachainInfoConfig {
+			_config: Default::default(),
+			parachain_id: id,
+		},
 		collator_selection: continuum_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
@@ -291,6 +298,7 @@ fn testnet_genesis(
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
 		estate: EstateConfig {
+			_config: Default::default(),
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {

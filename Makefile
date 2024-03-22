@@ -1,7 +1,3 @@
-.PHONY: init
-init:
-	./scripts/init.sh
-
 .PHONY: check
 check: githooks
 	SKIP_WASM_BUILD= cargo check --features with-metaverse-runtime
@@ -33,6 +29,10 @@ test:
 .PHONY: test-pioneer
 test-pioneer:
 	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime
+
+.PHONY: test-precompiles
+test-precompiles:
+	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime,with-precompile-tests
 
 .PHONY: run
 run:
@@ -71,9 +71,33 @@ run-dev:
 run-bob-dev:
 	./target/release/metaverse-node --dev --tmp --bob --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp -lruntime=debug
 
+.PHONY: spawn-zombienet-basic
+spawn-zombienet-basic:
+	./scripts/zombienet/zombienet.sh spawn_basic
+
+.PHONY: spawn-zombienet-metaverse
+spawn-zombienet-metaverse:
+	./scripts/zombienet/zombienet.sh spawn_metaverse
+
+.PHONY: spawn-zombienet-pioneeer
+spawn-zombienet-meatverse:
+	./scripts/zombienet/zombienet.sh spawn_pioneer
+
+.PHONY: install-chopsticks
+install-chopsticks:
+	npm i -g @acala-network/chopsticks@latest
+
 .PHONY: run-chopsticks-pioneer
 run-chopsticks-pioneer:
-	npx @acala-network/chopsticks --config=scripts/chopsticks_pioneer.yml
+	npx @acala-network/chopsticks --config=scripts/chopsticks/chopsticks_pioneer.yml
+
+.PHONY: run-chopsticks-pioneer-xcm
+run-chopsticks-pioneer-xcm:
+	npx @acala-network/chopsticks xcm -r kusama -p statemine -p scripts/chopsticks/chopsticks_pioneer.yml
+
+.PHONY: check-missing-std-dependencies
+check-missing-std-dependencies:
+	cargo install subalfred && ./scripts/subalfred-check.sh "benchmarking|frame-try-runtime|frame-std"
 
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))

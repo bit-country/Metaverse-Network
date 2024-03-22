@@ -26,7 +26,7 @@
 use codec::{Decode, Encode, FullCodec};
 use sp_runtime::traits::StaticLookup;
 
-use frame_support::{traits::Get, weights::Weight, RuntimeDebug};
+use frame_support::{pallet_prelude::RuntimeDebug, traits::Get, weights::Weight};
 use module_support::CallBuilder;
 use primitives::Balance;
 use sp_std::{boxed::Box, marker::PhantomData, prelude::*, vec};

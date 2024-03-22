@@ -23,11 +23,12 @@ use {
 	core::marker::PhantomData,
 	fp_evm::{ExitError, PrecompileFailure, PrecompileHandle},
 	frame_support::{
-		dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
+		dispatch::{GetDispatchInfo, PostDispatchInfo},
 		traits::Get,
 		weights::Weight,
 	},
 	pallet_evm::GasWeightMapping,
+	sp_runtime::traits::Dispatchable,
 };
 
 /// Helper functions requiring a Substrate runtime.
@@ -87,15 +88,17 @@ where
 {
 	/// Cost of a Substrate DB write in gas.
 	pub fn db_write_gas_cost() -> u64 {
-		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(Weight::from_ref_time(
+		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(Weight::from_parts(
 			<Runtime as frame_system::Config>::DbWeight::get().write,
+			0,
 		))
 	}
 
 	/// Cost of a Substrate DB read in gas.
 	pub fn db_read_gas_cost() -> u64 {
-		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(Weight::from_ref_time(
+		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(Weight::from_parts(
 			<Runtime as frame_system::Config>::DbWeight::get().read,
+			0,
 		))
 	}
 }
