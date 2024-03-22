@@ -131,11 +131,6 @@ pub mod pallet {
 			let who = ensure_signed(origin.clone())?;
 
 			ensure!(Self::is_accepted_origin(&who), Error::<T>::NoPermission);
-			let target = T::Lookup::lookup(to.clone())?;
-			// Get existing vesting schedule
-			let vesting_info = T::VestingSchedule::vesting_balance(&target);
-			// Ensure user doesn't have any vested reward
-			ensure!(vesting_info == None, Error::<T>::UserAlreadyGotExistingVestingInfo);
 
 			VestingModule::<T>::vested_transfer(origin, to, schedule)?;
 

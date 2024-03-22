@@ -201,6 +201,20 @@ runtime_benchmarks! {
 		);
 	}
 
+	//claim reward
+	claim_reward{
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+
+		let min_stake = MinimumStake::get();
+		let stake_amount = min_stake + dollar(100);
+
+		Economy::stake_on_innovation(RawOrigin::Signed(caller.clone()).into(), stake_amount);
+
+		run_to_block(100);
+	}: _(RawOrigin::Signed(caller.clone()))
+
 }
 
 #[cfg(test)]

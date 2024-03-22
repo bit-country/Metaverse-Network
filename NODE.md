@@ -150,7 +150,7 @@ installed locally.
 #### Downloading the docker image
 
 ```sh
-docker pull bitcountry/continuum-collator-node:latest
+docker pull bitcountry/continuum-collator-node:b2d0ea7
 ```
 
 #### Running the docker image

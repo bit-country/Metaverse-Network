@@ -47,92 +47,223 @@ use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for economy.
-pub trait WeightInfo {	fn stake_a() -> Weight;	fn stake_b() -> Weight;	fn stake_on_innovation() -> Weight;	fn unstake_a() -> Weight;	fn unstake_b() -> Weight;	fn unstake_new_estate_owner() -> Weight;	fn unstake_on_innovation() -> Weight;	fn withdraw_unreserved() -> Weight;}
+pub trait WeightInfo {	fn stake_a() -> Weight;	fn stake_b() -> Weight;	fn stake_on_innovation() -> Weight;	fn unstake_a() -> Weight;	fn unstake_b() -> Weight;	fn unstake_new_estate_owner() -> Weight;	fn unstake_on_innovation() -> Weight;	fn withdraw_unreserved() -> Weight;	fn claim_reward() -> Weight;}
 
 /// Weights for economy using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	
+impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Mining Round (r:1 w:0)
+	// Proof Skipped: Mining Round (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy ExitQueue (r:1 w:0)
+	// Proof Skipped: Economy ExitQueue (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy StakingInfo (r:1 w:1)
+	// Proof Skipped: Economy StakingInfo (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy TotalStake (r:1 w:1)
+	// Proof Skipped: Economy TotalStake (max_values: Some(1), max_size: None, mode: Measured)
 	fn stake_a() -> Weight {
-		Weight::from_parts(52_209_000, 4929)
+		// Proof Size summary in bytes:
+		//  Measured:  `1464`
+		//  Estimated: `4929`
+		// Minimum execution time: 55_773 nanoseconds.
+		Weight::from_parts(59_140_000, 4929)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	// Storage: Mining Round (r:1 w:0)
+	// Proof Skipped: Mining Round (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy EstateExitQueue (r:1 w:0)
+	// Proof Skipped: Economy EstateExitQueue (max_values: None, max_size: None, mode: Measured)
+	// Storage: Estate Estates (r:1 w:0)
+	// Proof Skipped: Estate Estates (max_values: None, max_size: None, mode: Measured)
+	// Storage: Estate EstateOwner (r:1 w:0)
+	// Proof Skipped: Estate EstateOwner (max_values: None, max_size: None, mode: Measured)
+	// Storage: OrmlNFT Tokens (r:1 w:0)
+	// Proof Skipped: OrmlNFT Tokens (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy EstateStakingInfo (r:1 w:1)
+	// Proof Skipped: Economy EstateStakingInfo (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy TotalEstateStake (r:1 w:1)
+	// Proof Skipped: Economy TotalEstateStake (max_values: Some(1), max_size: None, mode: Measured)
 	fn stake_b() -> Weight {
-		Weight::from_parts(71_491_000, 5545)
+		// Proof Size summary in bytes:
+		//  Measured:  `2080`
+		//  Estimated: `5545`
+		// Minimum execution time: 91_979 nanoseconds.
+		Weight::from_parts(117_686_000, 5545)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	// Storage: Mining Round (r:1 w:0)
+	// Proof Skipped: Mining Round (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy InnovationStakingExitQueue (r:1 w:0)
+	// Proof Skipped: Economy InnovationStakingExitQueue (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy InnovationStakingInfo (r:1 w:1)
+	// Proof Skipped: Economy InnovationStakingInfo (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy TotalInnovationStaking (r:1 w:1)
+	// Proof Skipped: Economy TotalInnovationStaking (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy StakingRewardPoolInfo (r:1 w:1)
+	// Proof Skipped: Economy StakingRewardPoolInfo (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy SharesAndWithdrawnRewards (r:1 w:1)
+	// Proof Skipped: Economy SharesAndWithdrawnRewards (max_values: None, max_size: None, mode: Measured)
 	fn stake_on_innovation() -> Weight {
-		Weight::from_parts(56_832_000, 4929)
+		// Proof Size summary in bytes:
+		//  Measured:  `1464`
+		//  Estimated: `4929`
+		// Minimum execution time: 59_485 nanoseconds.
+		Weight::from_parts(60_979_000, 4929)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
+	// Storage: Economy StakingInfo (r:1 w:1)
+	// Proof Skipped: Economy StakingInfo (max_values: None, max_size: None, mode: Measured)
+	// Storage: Mining Round (r:1 w:0)
+	// Proof Skipped: Mining Round (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy ExitQueue (r:1 w:1)
+	// Proof Skipped: Economy ExitQueue (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy TotalStake (r:1 w:1)
+	// Proof Skipped: Economy TotalStake (max_values: Some(1), max_size: None, mode: Measured)
 	fn unstake_a() -> Weight {
-		Weight::from_parts(32_069_000, 4698)
+		// Proof Size summary in bytes:
+		//  Measured:  `1233`
+		//  Estimated: `4698`
+		// Minimum execution time: 34_666 nanoseconds.
+		Weight::from_parts(36_213_000, 4698)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
+	// Storage: Estate Estates (r:1 w:0)
+	// Proof Skipped: Estate Estates (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy EstateStakingInfo (r:1 w:1)
+	// Proof Skipped: Economy EstateStakingInfo (max_values: None, max_size: None, mode: Measured)
+	// Storage: Mining Round (r:1 w:0)
+	// Proof Skipped: Mining Round (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy EstateExitQueue (r:1 w:1)
+	// Proof Skipped: Economy EstateExitQueue (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy TotalEstateStake (r:1 w:1)
+	// Proof Skipped: Economy TotalEstateStake (max_values: Some(1), max_size: None, mode: Measured)
 	fn unstake_b() -> Weight {
-		Weight::from_parts(47_341_000, 4921)
+		// Proof Size summary in bytes:
+		//  Measured:  `1456`
+		//  Estimated: `4921`
+		// Minimum execution time: 64_725 nanoseconds.
+		Weight::from_parts(91_945_000, 4921)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
+	// Storage: Estate Estates (r:1 w:0)
+	// Proof Skipped: Estate Estates (max_values: None, max_size: None, mode: Measured)
+	// Storage: Estate EstateOwner (r:1 w:0)
+	// Proof Skipped: Estate EstateOwner (max_values: None, max_size: None, mode: Measured)
+	// Storage: OrmlNFT Tokens (r:1 w:0)
+	// Proof Skipped: OrmlNFT Tokens (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy EstateStakingInfo (r:1 w:1)
+	// Proof Skipped: Economy EstateStakingInfo (max_values: None, max_size: None, mode: Measured)
+	// Storage: Mining Round (r:1 w:0)
+	// Proof Skipped: Mining Round (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy TotalEstateStake (r:1 w:1)
+	// Proof Skipped: Economy TotalEstateStake (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy EstateExitQueue (r:0 w:1)
+	// Proof Skipped: Economy EstateExitQueue (max_values: None, max_size: None, mode: Measured)
 	fn unstake_new_estate_owner() -> Weight {
-		Weight::from_parts(53_229_000, 5314)
+		// Proof Size summary in bytes:
+		//  Measured:  `1849`
+		//  Estimated: `5314`
+		// Minimum execution time: 59_124 nanoseconds.
+		Weight::from_parts(72_456_000, 5314)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
+	// Storage: Economy InnovationStakingInfo (r:1 w:1)
+	// Proof Skipped: Economy InnovationStakingInfo (max_values: None, max_size: None, mode: Measured)
+	// Storage: Mining Round (r:1 w:0)
+	// Proof Skipped: Mining Round (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy InnovationStakingExitQueue (r:1 w:1)
+	// Proof Skipped: Economy InnovationStakingExitQueue (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy TotalInnovationStaking (r:1 w:1)
+	// Proof Skipped: Economy TotalInnovationStaking (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy SharesAndWithdrawnRewards (r:1 w:1)
+	// Proof Skipped: Economy SharesAndWithdrawnRewards (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy StakingRewardPoolInfo (r:1 w:1)
+	// Proof Skipped: Economy StakingRewardPoolInfo (max_values: Some(1), max_size: None, mode: Measured)
 	fn unstake_on_innovation() -> Weight {
-		Weight::from_parts(46_719_000, 4811)
+		// Proof Size summary in bytes:
+		//  Measured:  `1346`
+		//  Estimated: `4811`
+		// Minimum execution time: 48_186 nanoseconds.
+		Weight::from_parts(144_041_000, 4811)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
+	// Storage: Economy ExitQueue (r:1 w:1)
+	// Proof Skipped: Economy ExitQueue (max_values: None, max_size: None, mode: Measured)
 	fn withdraw_unreserved() -> Weight {
-		Weight::from_parts(58_043_000, 5001)
+		// Proof Size summary in bytes:
+		//  Measured:  `1536`
+		//  Estimated: `5001`
+		// Minimum execution time: 49_323 nanoseconds.
+		Weight::from_parts(82_783_000, 5001)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	// Storage: Economy SharesAndWithdrawnRewards (r:1 w:1)
+	// Proof Skipped: Economy SharesAndWithdrawnRewards (max_values: None, max_size: None, mode: Measured)
+	// Storage: Economy StakingRewardPoolInfo (r:1 w:1)
+	// Proof Skipped: Economy StakingRewardPoolInfo (max_values: Some(1), max_size: None, mode: Measured)
+	// Storage: Economy PendingRewardsOfStakingInnovation (r:1 w:1)
+	// Proof Skipped: Economy PendingRewardsOfStakingInnovation (max_values: None, max_size: None, mode: Measured)
+	fn claim_reward() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `945`
+		//  Estimated: `4410`
+		// Minimum execution time: 21_960 nanoseconds.
+		Weight::from_parts(25_255_000, 4410)
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn stake_a() -> Weight {
-		Weight::from_parts(52_209_000, 4929)
+		Weight::from_parts(59_140_000, 4929)
 			.saturating_add(RocksDbWeight::get().reads(4))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	fn stake_b() -> Weight {
-		Weight::from_parts(71_491_000, 5545)
+		Weight::from_parts(117_686_000, 5545)
 			.saturating_add(RocksDbWeight::get().reads(7))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	fn stake_on_innovation() -> Weight {
-		Weight::from_parts(56_832_000, 4929)
+		Weight::from_parts(60_979_000, 4929)
 			.saturating_add(RocksDbWeight::get().reads(6))
 			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 	fn unstake_a() -> Weight {
-		Weight::from_parts(32_069_000, 4698)
+		Weight::from_parts(36_213_000, 4698)
 			.saturating_add(RocksDbWeight::get().reads(4))
 			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 	fn unstake_b() -> Weight {
-		Weight::from_parts(47_341_000, 4921)
+		Weight::from_parts(91_945_000, 4921)
 			.saturating_add(RocksDbWeight::get().reads(5))
 			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 	fn unstake_new_estate_owner() -> Weight {
-		Weight::from_parts(53_229_000, 5314)
+		Weight::from_parts(72_456_000, 5314)
 			.saturating_add(RocksDbWeight::get().reads(6))
 			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 	fn unstake_on_innovation() -> Weight {
-		Weight::from_parts(46_719_000, 4811)
+		Weight::from_parts(144_041_000, 4811)
 			.saturating_add(RocksDbWeight::get().reads(6))
 			.saturating_add(RocksDbWeight::get().writes(5))
 	}
 	fn withdraw_unreserved() -> Weight {
-		Weight::from_parts(58_043_000, 5001)
+		Weight::from_parts(82_783_000, 5001)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	fn claim_reward() -> Weight {
+		Weight::from_parts(25_255_000, 4410)
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 }

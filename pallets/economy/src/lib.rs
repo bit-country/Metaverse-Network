@@ -601,10 +601,9 @@ pub mod pallet {
 		///
 		/// The dispatch origin for this call must be _Signed_.
 		///
-		/// `amount`: the unstake amount
 		///
-		/// Emit `UnstakedInnovation` event if successful
-		#[pallet::weight(T::WeightInfo::stake_a())]
+		/// Emit `ClaimRewards` event if successful
+		#[pallet::weight(T::WeightInfo::claim_reward())]
 		#[transactional]
 		pub fn claim_reward(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
