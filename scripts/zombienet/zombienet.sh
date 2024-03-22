@@ -8,8 +8,8 @@ working_dir="$(pwd)"
 
 provider=native
 zombienet_version=v1.3.91
-pdot_branch=release-v0.9.43
-asset_hub_branch=release-v0.9.430
+pdot_branch=release-polkadot-v1.1.0
+asset_hub_branch=release-polkadot-v1.1.0
 polkadot_tmp_dir=/tmp/polkadot
 asset_hub_tmp_dir=/tmp/asset_hub
 
@@ -64,7 +64,7 @@ build_polkadot() {
         echo "::group::Install polkadot."
         echo "Cloning polkadot into $polkadot_tmp_dir"
         mkdir -p "$polkadot_tmp_dir"
-        git clone --branch "$pdot_branch" --depth 1 https://github.com/paritytech/polkadot "$polkadot_tmp_dir/$pdot_branch" || true
+        git clone --branch "$pdot_branch" --depth 1 https://github.com/paritytech/polkadot-sdk "$polkadot_tmp_dir/$pdot_branch" || true
         echo "Building polkadot..."
         cargo build --manifest-path "$polkadot_tmp_dir/$pdot_branch/Cargo.toml" --features fast-runtime --release --locked
         cp "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot" "$bin_dir/polkadot"
@@ -86,7 +86,7 @@ build_asset_hub() {
         echo "::group::Install AssetHub."
         echo "Cloning AssetHub into $asset_hub_tmp_dir"
         mkdir -p "$asset_hub_tmp_dir"
-        git clone --branch "$asset_hub_branch" --depth 1 https://github.com/paritytech/cumulus "$asset_hub_tmp_dir/$asset_hub_branch" || true
+        git clone --branch "$asset_hub_branch" --depth 1 https://github.com/paritytech/polkadot-sdk "$asset_hub_tmp_dir/$asset_hub_branch" || true
         echo "Building AssetHub..."
         cargo build --manifest-path "$asset_hub_tmp_dir/$asset_hub_branch/Cargo.toml" --release --locked --bin polkadot-parachain
         cp "$asset_hub_tmp_dir/$asset_hub_branch/target/release/polkadot-parachain" "$bin_dir/asset-hub"
