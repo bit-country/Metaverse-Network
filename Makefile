@@ -1,7 +1,3 @@
-.PHONY: init
-init:
-	./scripts/init.sh
-
 .PHONY: check
 check: githooks
 	SKIP_WASM_BUILD= cargo check --features with-metaverse-runtime
