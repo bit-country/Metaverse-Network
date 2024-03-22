@@ -36,8 +36,8 @@ getrandom = { version = "0.2.7", features = ["js"] }
 blake2-rfc = { version = "0.2.18", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 funty = { version = "=1.1.0", default-features = false }
-similar-asserts = { version = "1.1.0" }
-curve25519-dalek = { version = "4.1.2", features = ["serde"] }
+similar-asserts = "=1.4.2"
+curve25519-dalek = "=4.1.1"
 
 
 # General (ethereum)

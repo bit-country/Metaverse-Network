@@ -20,6 +20,8 @@ serde_json = { workspace = true, default-features = false, features = ["alloc"] 
 scale-info = { workspace = true }
 hex-literal = { workspace = true }
 getrandom = { workspace = true }
+curve25519-dalek = { workspace = true }
+
 
 pallet-aura = { workspace = true }
 pallet-balances = { workspace = true }

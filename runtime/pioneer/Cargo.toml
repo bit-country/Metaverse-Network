@@ -18,6 +18,7 @@ scale-info = { workspace = true }
 smallvec = { workspace = true }
 hex-literal = { workspace = true }
 getrandom = { workspace = true }
+curve25519-dalek = { workspace = true }
 
 # external crates - orml packages
 orml-currencies = { workspace = true }

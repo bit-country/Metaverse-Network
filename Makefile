@@ -34,6 +34,10 @@ test:
 test-pioneer:
 	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime
 
+.PHONY: test-precompiles
+test-precompiles:
+	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime,with-precompile-tests
+
 .PHONY: run
 run:
 	cargo run --release -- --dev --tmp -lruntime=debug

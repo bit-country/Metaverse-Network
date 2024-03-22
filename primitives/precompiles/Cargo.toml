@@ -9,7 +9,6 @@ impl-trait-for-tuples = { workspace = true }
 log = { workspace = true, default-features = true }
 num_enum = { workspace = true }
 sha3 = { version = "0.9", default-features = false }
-similar-asserts = { workspace = true, optional = true }
 # Moonbeam
 precompile-utils-macro = { path = "macro" }
 
@@ -30,9 +29,11 @@ pallet-evm = { workspace = true }
 # Polkadot / XCM
 xcm = { workspace = true }
 
+# Testing
+similar-asserts = { workspace = true, optional = true }
+
 [dev-dependencies]
 hex-literal = { workspace = true }
-#assert_matches = { workspace = true }
 
 [features]
 default = ["std"]
