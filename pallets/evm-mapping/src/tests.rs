@@ -19,13 +19,9 @@
 
 #![cfg(test)]
 
+use frame_support::assert_ok;
 
-
-use frame_support::{assert_ok};
-
-use mock::{
-	alice, secp_utils::*, EVMMapping, ExtBuilder, Runtime, RuntimeEvent, RuntimeOrigin, System, ALICE,
-};
+use mock::{alice, secp_utils::*, EVMMapping, ExtBuilder, Runtime, RuntimeEvent, RuntimeOrigin, System, ALICE};
 
 use super::*;
 

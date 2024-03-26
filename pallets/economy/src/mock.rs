@@ -14,9 +14,9 @@ use auction_manager::*;
 use core_primitives::NftAssetData;
 use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
+use primitives::ClassId;
 use primitives::{Amount, AuctionId, EstateId, FungibleTokenId, ItemId, UndeployedLandBlockId};
 use sp_runtime::BuildStorage;
-use primitives::ClassId;
 
 use crate as economy;
 

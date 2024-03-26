@@ -19,11 +19,7 @@ pub const GENERAL_METAVERSE_FUND: AccountId = AccountId32::new([102; 32]);
 
 fn init_test_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
-	assert_ok!(NFTModule::create_group(
-		RuntimeOrigin::root(),
-		vec![1],
-		vec![1]
-	));
+	assert_ok!(NFTModule::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
 
 	assert_ok!(NFTModule::create_class(
 		owner.clone(),
@@ -36,22 +32,12 @@ fn init_test_nft(owner: RuntimeOrigin) {
 		None
 	));
 
-	assert_ok!(NFTModule::mint(
-		owner.clone(),
-		CLASS_ID,
-		vec![1],
-		test_attributes(1),
-		1
-	));
+	assert_ok!(NFTModule::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
 
 fn init_test_stackable_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
-	assert_ok!(NFTModule::create_group(
-		RuntimeOrigin::root(),
-		vec![1],
-		vec![1]
-	));
+	assert_ok!(NFTModule::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
 
 	assert_ok!(NFTModule::create_class(
 		owner.clone(),
@@ -229,10 +215,7 @@ fn create_new_stackable_nft_auction_work() {
 		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(
-			NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			100u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 100u128);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -259,10 +242,7 @@ fn create_new_stackable_nft_auction_work() {
 			Some(true)
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99995);
-		assert_eq!(
-			NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			50u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 50u128);
 		let is_transferable = NFTModule::is_transferable(&(0, 0));
 		assert_eq!(is_transferable, Ok(false));
 	});
@@ -400,10 +380,7 @@ fn create_new_stackable_nft_buy_now_work() {
 		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(
-			NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			100u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 100u128);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -431,10 +408,7 @@ fn create_new_stackable_nft_buy_now_work() {
 			Some(true)
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99995);
-		assert_eq!(
-			NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			70u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 70u128);
 		let is_transferable = NFTModule::is_transferable(&(0, 0));
 		assert_eq!(is_transferable, Ok(false));
 	});
@@ -446,11 +420,7 @@ fn create_auction_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(ALICE);
 
-		assert_ok!(NFTModule::create_group(
-			RuntimeOrigin::root(),
-			vec![1],
-			vec![1]
-		));
+		assert_ok!(NFTModule::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
 
 		assert_ok!(NFTModule::create_class(
 			owner.clone(),
@@ -463,13 +433,7 @@ fn create_auction_fail() {
 			None
 		));
 
-		assert_ok!(NFTModule::mint(
-			owner.clone(),
-			CLASS_ID,
-			vec![1],
-			Default::default(),
-			1
-		));
+		assert_ok!(NFTModule::mint(owner.clone(), CLASS_ID, vec![1], Default::default(), 1));
 		//account does not have permission to create auction
 		assert_noop!(
 			AuctionModule::create_auction(
@@ -497,13 +461,7 @@ fn create_auction_fail() {
 			None
 		));
 
-		assert_ok!(NFTModule::mint(
-			owner.clone(),
-			1,
-			vec![1],
-			Default::default(),
-			1
-		));
+		assert_ok!(NFTModule::mint(owner.clone(), 1, vec![1], Default::default(), 1));
 
 		//Class is BoundToAddress
 		assert_noop!(
@@ -1173,13 +1131,7 @@ fn buy_now_work() {
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
-		assert_ok!(NFTModule::mint(
-			owner.clone(),
-			CLASS_ID,
-			vec![1],
-			Default::default(),
-			1
-		));
+		assert_ok!(NFTModule::mint(owner.clone(), CLASS_ID, vec![1], Default::default(), 1));
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -1387,10 +1339,7 @@ fn buy_now_stackable_nft_work() {
 
 		init_test_stackable_nft(owner.clone());
 
-		assert_eq!(
-			NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)),
-			100u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)), 100u128);
 
 		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
@@ -1404,22 +1353,13 @@ fn buy_now_stackable_nft_work() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0)
 		));
-		assert_eq!(
-			NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)),
-			70u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		//assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(
-			NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			30u128
-		);
-		assert_eq!(
-			NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)),
-			70u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 30u128);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
 
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99800);

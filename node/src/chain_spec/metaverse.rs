@@ -11,9 +11,9 @@ use sp_runtime::traits::{IdentifyAccount, Verify};
 
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EvmChainIdConfig,
-	GenesisAccount, GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature,
-	SudoConfig, SystemConfig,
+	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EvmChainIdConfig, GenesisAccount,
+	GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig,
+	SystemConfig,
 };
 use primitives::Balance;
 

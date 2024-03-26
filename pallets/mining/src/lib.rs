@@ -31,9 +31,7 @@ use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{BasicCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended};
 use scale_info::TypeInfo;
-use sp_runtime::{
-	traits::{AccountIdConversion, Zero},
-};
+use sp_runtime::traits::{AccountIdConversion, Zero};
 use sp_std::vec::Vec;
 
 use core_primitives::*;

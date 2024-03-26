@@ -30,7 +30,7 @@ use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{DataProvider, MultiCurrency, MultiReservableCurrency};
 use sp_core::Encode as SPEncode;
 use sp_io::hashing::keccak_256;
-use sp_runtime::traits::{Hash as Hasher};
+use sp_runtime::traits::Hash as Hasher;
 use sp_runtime::{
 	traits::{AccountIdConversion, Zero},
 	DispatchError, Perbill, SaturatedConversion,

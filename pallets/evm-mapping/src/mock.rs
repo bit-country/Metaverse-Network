@@ -19,20 +19,16 @@
 
 #![cfg(test)]
 
-
-use frame_support::traits::{Nothing};
+use frame_support::traits::Nothing;
+use frame_support::PalletId;
 use frame_support::{construct_runtime, parameter_types};
-use frame_support::{PalletId};
 
 use orml_traits::parameter_type_with_key;
 
 use sp_core::H256;
-use sp_runtime::{
-	traits::{AccountIdConversion, IdentityLookup},
-};
+use sp_runtime::traits::{AccountIdConversion, IdentityLookup};
 
 use primitives::{Amount, Balance, FungibleTokenId};
-
 
 use crate::mock::secp_utils::eth;
 use sp_runtime::BuildStorage;

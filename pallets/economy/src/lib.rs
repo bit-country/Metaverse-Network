@@ -81,7 +81,6 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	
 	use primitives::{staking::Bond, ClassId, NftId};
 
 	use super::*;

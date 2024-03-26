@@ -4,11 +4,8 @@ use cumulus_test_relay_sproof_builder::RelayStateSproofBuilder;
 
 use std::sync::Arc;
 
-use fc_rpc::{
-	pending::ConsensusDataProvider, EthBlockDataCacheTask, OverrideHandle,
-};
+use fc_rpc::{pending::ConsensusDataProvider, EthBlockDataCacheTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
-
 
 use jsonrpsee::RpcModule;
 use pallet_transaction_payment_rpc;

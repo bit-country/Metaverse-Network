@@ -1,7 +1,6 @@
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use serde::{Deserialize, Serialize};
 
-
 #[cfg(feature = "with-pioneer-runtime")]
 pub use pioneer::*;
 

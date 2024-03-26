@@ -30,7 +30,9 @@ use sc_service::config::{BasePath, PrometheusConfig};
 use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
 
-use sp_runtime::traits::Block as BlockT;
+use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
+
+use cumulus_primitives_core::ParaId;
 
 use frame_benchmarking::benchmarking::HostFunctions;
 

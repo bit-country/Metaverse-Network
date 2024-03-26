@@ -29,7 +29,7 @@ pub mod pallet {
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
-	use sp_arithmetic::traits::{Saturating};
+	use sp_arithmetic::traits::Saturating;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::ModuleError;
 

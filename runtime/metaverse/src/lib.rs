@@ -46,11 +46,10 @@ pub use frame_support::{
 };
 use frame_support::{BoundedVec, ConsensusEngineId};
 // A few exports that help ease life for downstream crates.
-use frame_support::traits::{
-	Contains, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor, InstanceFilter, Nothing,
-};
+use frame_support::traits::{Contains, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor, InstanceFilter, Nothing};
 use frame_system::{
-	limits::{BlockLength, BlockWeights}, EnsureRoot, EnsureSigned, RawOrigin,
+	limits::{BlockLength, BlockWeights},
+	EnsureRoot, EnsureSigned, RawOrigin,
 };
 use orml_traits::parameter_type_with_key;
 pub use pallet_balances::Call as BalancesCall;
@@ -58,9 +57,7 @@ use pallet_contracts::weights::WeightInfo;
 use pallet_ethereum::PostLogContent;
 use pallet_ethereum::{Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction};
 use pallet_evm::GasWeightMapping;
-use pallet_evm::{
-	EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner,
-};
+use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use polkadot_primitives::MAX_POV_SIZE;
@@ -69,11 +66,7 @@ use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[cfg(not(feature = "runtime-benchmarks"))]
 use sp_core::Get;
-use sp_core::{
-	crypto::{KeyTypeId},
-	sp_std::marker::PhantomData,
-	ConstBool, OpaqueMetadata, H160, H256, U256,
-};
+use sp_core::{crypto::KeyTypeId, sp_std::marker::PhantomData, ConstBool, OpaqueMetadata, H160, H256, U256};
 use sp_runtime::traits::{BlockNumberProvider, DispatchInfoOf};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -101,7 +94,8 @@ pub use estate::{MintingRateInfo, Range as MintingRange};
 use evm_mapping::EvmAddressMapping;
 use metaverse_runtime_common::{precompiles::MetaverseNetworkPrecompiles, CurrencyHooks};
 use primitives::evm::{
-	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN, H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
+	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
+	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, PoolId, RoundIndex, TokenId};
 
