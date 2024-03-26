@@ -46,7 +46,6 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	dispatch::DispatchResult,
 	ensure,
 	traits::ExistenceRequirement,
 	traits::{Currency, Get, LockableCurrency, ReservableCurrency},
@@ -528,7 +527,7 @@ impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
 			let treasury = Self::account_id();
 			ensure!(from == treasury, Error::<T>::NoPermission);
 
-			let mut spot = maybe_spot.as_mut().ok_or(Error::<T>::MapSpotNotFound)?;
+			let spot = maybe_spot.as_mut().ok_or(Error::<T>::MapSpotNotFound)?;
 			spot.owner = to.clone().0;
 			spot.metaverse_id = Some(to.1);
 

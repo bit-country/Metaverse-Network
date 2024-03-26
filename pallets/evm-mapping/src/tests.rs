@@ -19,12 +19,12 @@
 
 #![cfg(test)]
 
-use std::str::FromStr;
 
-use frame_support::{assert_noop, assert_ok};
+
+use frame_support::{assert_ok};
 
 use mock::{
-	alice, bob, secp_utils::*, EVMMapping, ExtBuilder, Runtime, RuntimeEvent, RuntimeOrigin, System, ALICE, BOB,
+	alice, secp_utils::*, EVMMapping, ExtBuilder, Runtime, RuntimeEvent, RuntimeOrigin, System, ALICE,
 };
 
 use super::*;

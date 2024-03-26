@@ -29,7 +29,7 @@ pub mod pallet {
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
-	use sp_arithmetic::traits::{Saturating, Zero};
+	use sp_arithmetic::traits::{Saturating};
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::ModuleError;
 
@@ -192,7 +192,7 @@ pub mod pallet {
 
 			let bridge_id = T::PalletId::get().into_account_truncating();
 			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
-			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
+			let (min_fee, _fee_scale) = Self::bridge_fee(chain_id);
 
 			let fee_estimated = currency_id.1 * amount;
 			let fee = if fee_estimated > min_fee {
@@ -201,7 +201,7 @@ pub mod pallet {
 				min_fee
 			};
 
-			let mut actual_fee = fee;
+			let actual_fee = fee;
 			if currency_id.0 == FungibleTokenId::NativeToken(0) {
 				T::Currency::transfer(
 					&source,

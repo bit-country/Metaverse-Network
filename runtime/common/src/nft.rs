@@ -118,7 +118,7 @@ where
 		Some(result)
 	}
 
-	fn is_precompile(&self, _address: H160, remaining_gas: u64) -> IsPrecompileResult {
+	fn is_precompile(&self, _address: H160, _remaining_gas: u64) -> IsPrecompileResult {
 		todo!()
 	}
 }

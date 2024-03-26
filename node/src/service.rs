@@ -10,7 +10,7 @@ pub use continuum::{
 	ParachainRuntimeExecutor as ContinuumParachainRuntimeExecutor,
 };
 #[cfg(feature = "with-metaverse-runtime")]
-pub use metaverse::{new_full, new_partial, ExecutorDispatch};
+pub use metaverse::{new_full, new_partial};
 #[cfg(feature = "with-pioneer-runtime")]
 pub use pioneer::{
 	// new_full as pioneer_full, new_light as pioneer_light,

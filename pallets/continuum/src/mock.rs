@@ -17,11 +17,11 @@
 
 #![cfg(test)]
 
-use frame_support::pallet_prelude::{BuildGenesisConfig, Hooks};
+use frame_support::pallet_prelude::{Hooks, DispatchResult};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::{traits::IdentityLookup, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait};

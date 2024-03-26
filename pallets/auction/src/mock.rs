@@ -8,7 +8,7 @@ use orml_traits::parameter_type_with_key;
 use sp_core::crypto::AccountId32;
 use sp_core::{ConstU128, H256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentifyAccount, Verify};
-use sp_runtime::{testing::Header, traits::IdentityLookup, MultiSignature, Perbill};
+use sp_runtime::{traits::IdentityLookup, MultiSignature, Perbill};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};

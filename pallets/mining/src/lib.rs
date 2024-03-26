@@ -33,7 +33,6 @@ use orml_traits::{BasicCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExt
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, Zero},
-	DispatchError,
 };
 use sp_std::vec::Vec;
 

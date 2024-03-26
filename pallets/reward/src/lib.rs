@@ -30,7 +30,7 @@ use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{DataProvider, MultiCurrency, MultiReservableCurrency};
 use sp_core::Encode as SPEncode;
 use sp_io::hashing::keccak_256;
-use sp_runtime::traits::{Hash as Hasher, Saturating};
+use sp_runtime::traits::{Hash as Hasher};
 use sp_runtime::{
 	traits::{AccountIdConversion, Zero},
 	DispatchError, Perbill, SaturatedConversion,
@@ -476,7 +476,7 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
@@ -527,7 +527,7 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
@@ -586,7 +586,7 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
@@ -650,7 +650,7 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
@@ -724,7 +724,7 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(
 					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
@@ -778,7 +778,7 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(
 					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
@@ -840,7 +840,7 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(
 					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
@@ -905,7 +905,7 @@ pub mod pallet {
 			)?;
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(
 					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
