@@ -982,6 +982,11 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
+	pub AssetHubLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1000)));
+	pub const NeerNative: MultiAssetFilter =
+		Wild(AllOf { fun: WildFungible, id: Concrete(MultiLocation::here()) });
+	pub AssetHubTrustedTeleporter: (MultiAssetFilter, MultiLocation)
+		= (NeerNative::get(), AssetHubLocation::get());
 	// One XCM operation is 100_000_000 weight - almost certainly a conservative estimate.
 	pub UnitWeightCost: Weight = Weight::from_parts(100_000_000, 0);
 	pub const MaxInstructions: u32 = 100;
@@ -1157,6 +1162,8 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 		Self::allow_base_call(call)
 	}
 }
+//pub type Reserves = (NativeAsset, ReserveAssetsFrom<AssetHubLocation>);
+pub type TrustedTeleporters = (xcm_builder::Case<AssetHubTrustedTeleporter>,);
 
 pub struct XcmConfig;
 
@@ -1170,7 +1177,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
-	type IsTeleporter = ();
+	type IsTeleporter = TrustedTeleporters;
 	// Should be enough to allow teleportation of ROC
 	type UniversalLocation = UniversalLocation;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
