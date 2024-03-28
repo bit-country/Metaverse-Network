@@ -5,6 +5,7 @@
 **/*.rs.bk
 # Zombienet binaries
 **/scripts/zombienet/bin/*
+**/bin/*
 .DS_Store
 
 # The cache for docker container dependency
