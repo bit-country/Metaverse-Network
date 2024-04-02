@@ -79,8 +79,8 @@ spawn-zombienet-basic:
 spawn-zombienet-metaverse:
 	./scripts/zombienet/zombienet.sh spawn_metaverse
 
-.PHONY: spawn-zombienet-pioneeer
-spawn-zombienet-meatverse:
+.PHONY: spawn-zombienet-pioneer
+spawn-zombienet-pioneer:
 	./scripts/zombienet/zombienet.sh spawn_pioneer
 
 .PHONY: install-chopsticks
