@@ -1,19 +1,20 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet for block logic.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-auction'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network pallet for block logic."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-auction"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { workspace = true, optional = true }
 codec = { workspace = true, package = "parity-scale-codec" }
+log = { workspace = true }
 scale-info = { workspace = true }
 sp-std = { workspace = true }
 sp-runtime = { workspace = true }
@@ -31,7 +32,7 @@ sp-version = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 pallet-proxy = { workspace = true }
 
-# Used for the node's RPCs
+# Used for the node"s RPCs
 frame-system-rpc-runtime-api = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
@@ -40,11 +41,11 @@ primitives = { package = "bit-country-primitives", path = "../../primitives/meta
 orml-nft = { workspace = true }
 orml-traits = { workspace = true }
 orml-tokens = { workspace = true }
-pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft' }
-pallet-continuum = { default-features = false, package = 'pallet-continuum', path = '../continuum' }
-pallet-estate = { default-features = false, package = 'pallet-estate', path = '../estate' }
-pallet-metaverse = { default-features = false, package = 'pallet-metaverse', path = '../metaverse' }
-auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
+pallet-nft = { default-features = false, package = "pallet-nft", path = "../nft" }
+pallet-continuum = { default-features = false, package = "pallet-continuum", path = "../continuum" }
+pallet-estate = { default-features = false, package = "pallet-estate", path = "../estate" }
+pallet-metaverse = { default-features = false, package = "pallet-metaverse", path = "../metaverse" }
+auction-manager = { default-features = false, package = "auction-manager", path = "../../traits/auction-manager" }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 
@@ -55,27 +56,36 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
 ]
-default = ['std']
+default = ["std"]
 std = [
-    'serde',
-    'codec/std',
+    "serde",
+    "codec/std",
+    "log/std",
     "scale-info/std",
-    'frame-support/std',
-    'frame-system/std',
-    'sp-io/std',
-    'sp-runtime/std',
-    'sp-core/std',
-    'sp-std/std',
-    'pallet-balances/std',
-    'auction-manager/std',
-    'orml-nft/std',
-    'orml-traits/std',
-    'orml-tokens/std',
-    'pallet-nft/std',
-    'pallet-continuum/std',
-    'pallet-estate/std',
-    'core-primitives/std',
-    'frame-benchmarking/std',
-    'pallet-scheduler/std',
-    'pallet-proxy/std',
+    "frame-support/std",
+    "frame-system/std",
+    "frame-executive/std",
+    "frame-system-rpc-runtime-api/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-core/std",
+    "sp-std/std",
+    "sp-version/std",
+    "pallet-balances/std",
+    "pallet-metaverse/std",
+    "auction-manager/std",
+    "currencies/std",
+    "orml-nft/std",
+    "orml-traits/std",
+    "orml-tokens/std",
+    "pallet-nft/std",
+    "pallet-continuum/std",
+    "pallet-estate/std",
+    "core-primitives/std",
+    "frame-benchmarking/std",
+    "pallet-scheduler/std",
+    "pallet-proxy/std",
+    "pallet-timestamp/std",
+    "pallet-transaction-payment/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
 ]

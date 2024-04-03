@@ -1,6 +1,0 @@
-endpoint: wss://pioneer-api-2.mercury-nodes.net
-mock-signature-host: true
-block: ${env.PIONEER_BLOCK_NUMBER}
-db: ./db.sqlite
-
-     

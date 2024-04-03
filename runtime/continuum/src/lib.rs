@@ -26,14 +26,16 @@ use frame_support::traits::{
 	OnUnbalanced,
 };
 use frame_support::{
-	construct_runtime, match_type, parameter_types,
+	construct_runtime, match_type,
+	pallet_prelude::DispatchClass,
+	parameter_types,
 	traits::{Everything, Imbalance, WithdrawReasons},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
+		ConstantMultiplier, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
-	BoundedVec, PalletId, RuntimeDebug, WeakBoundedVec,
+	BoundedVec, PalletId, WeakBoundedVec,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -61,7 +63,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,
+	ApplyExtrinsicResult, MultiSignature, RuntimeDebug,
 };
 pub use sp_runtime::{MultiAddress, Perbill, Percent, Permill};
 use sp_std::prelude::*;
@@ -362,15 +364,13 @@ impl frame_system::Config for Runtime {
 	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
 	type Lookup = AccountIdLookup<AccountId, ()>;
 	/// The index type for storing how many extrinsics an account has signed.
-	type Index = Index;
+	type Nonce = Index;
 	/// The index type for blocks.
-	type BlockNumber = BlockNumber;
+	type Block = Block;
 	/// The type for hashing blocks and tries.
 	type Hash = Hash;
 	/// The hashing algorithm used.
 	type Hashing = BlakeTwo256;
-	/// The header type.
-	type Header = generic::Header<BlockNumber, BlakeTwo256>;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
 	/// The ubiquitous origin type.
@@ -443,7 +443,7 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
@@ -716,7 +716,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BaseXcmWeight: Weight = Weight::from_ref_time(100_000_000);
+	pub const BaseXcmWeight: Weight = Weight::from_parts(100_000_000, 0);
 	pub const MaxAssetsForTransfer: usize = 2;
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
 	pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
@@ -787,8 +787,8 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 4);
-	pub const ReservedDmpWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 4);
+	pub const ReservedXcmpWeight: Weight =  MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+	pub const ReservedDmpWeight: Weight =  MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -986,7 +986,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
 	// One XCM operation is 100_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = Weight::from_ref_time(100_000_000);
+	pub UnitWeightCost: Weight = Weight::from_parts(100_000_000, 0);
 	pub const MaxInstructions: u32 = 100;
 }
 
@@ -1183,10 +1183,11 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
 	type SafeCallFilter = SafeCallFilter;
+	type Aliasers = Nothing;
 }
 
 parameter_types! {
-	pub const MaxDownwardMessageWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 10);
+	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
 	pub const RelayNetworkId: NetworkId = NetworkId::Kusama;
 }
 
@@ -1284,6 +1285,9 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = MaxAuthorities;
+	// Should be only enabled (`true`) when async backing is enabled
+	// otherwise set to `false`
+	type AllowMultipleBlocksPerSlot = ConstBool<false>;
 }
 
 parameter_types! {
@@ -1291,6 +1295,7 @@ parameter_types! {
 	pub const MinCandidates: u32 = 5;
 	pub const MaxInvulnerables: u32 = 100;
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
+	pub const SlashRatio: Perbill = Perbill::from_percent(1);
 }
 
 // We allow root and the Relay Chain council to execute privileged collator selection operations.
@@ -1303,14 +1308,14 @@ impl pallet_collator_selection::Config for Runtime {
 	type UpdateOrigin = CollatorSelectionUpdateOrigin;
 	type PotId = CollatorPotPalletId;
 	type MaxCandidates = MaxCandidates;
-	type MinCandidates = MinCandidates;
+	type MinEligibleCollators = MinCandidates;
 	type MaxInvulnerables = MaxInvulnerables;
 	// should be a multiple of session or things will get inconsistent
 	type KickThreshold = Period;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
 	type ValidatorRegistration = Session;
-	type WeightInfo = ();
+	type WeightInfo = pallet_collator_selection::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -1790,13 +1795,13 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		// System support stuff.
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
 		ParachainSystem: cumulus_pallet_parachain_system::{
-			Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
+			Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned,
 		} = 1,
 		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage} = 2,
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
-		ParachainInfo: parachain_info::{Pallet, Storage, Config} = 4,
+		ParachainInfo: parachain_info::{Pallet, Storage, Config<T>} = 4,
 		// Scheduler
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 5,
 		Utility: pallet_utility::{Pallet, Call, Event} = 6,
@@ -1815,7 +1820,7 @@ construct_runtime!(
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>} = 14,
 
 		// Treasury
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 15,
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Config<T>, Event<T>} = 15,
 		Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 16,
 
 
@@ -1824,7 +1829,7 @@ construct_runtime!(
 		CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 21,
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 22,
 		Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
-		AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 24,
+		AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config<T>} = 24,
 
 
 		// XCM helpers.
@@ -1856,7 +1861,7 @@ construct_runtime!(
 		Auction: auction::{Call, Pallet ,Storage, Event<T>} = 62,
 
 		Continuum: continuum::{Call, Pallet, Storage, Event<T>} = 63,
-		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
+		Estate: estate::{Call, Pallet, Storage, Event<T>, Config<T>} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
 		// Proxy
@@ -2016,7 +2021,8 @@ impl_runtime_apis! {
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
+			use frame_support::traits::TrackedStorageKey;
+			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark};
 
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {}

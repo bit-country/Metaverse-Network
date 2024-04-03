@@ -226,6 +226,7 @@ fn testnet_genesis(
 
 	GenesisConfig {
 		system: SystemConfig {
+			_config: Default::default(),
 			// Add Wasm runtime to storage.
 			code: wasm_binary_unwrap().to_vec(),
 		},
@@ -242,6 +243,7 @@ fn testnet_genesis(
 			authorities: vec![],
 		},
 		grandpa: GrandpaConfig {
+			_config: Default::default(),
 			//            authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
 			authorities: vec![],
 		},
@@ -266,6 +268,7 @@ fn testnet_genesis(
 				.collect::<Vec<_>>(),
 		},
 		estate: EstateConfig {
+			_config: Default::default(),
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {
@@ -273,6 +276,7 @@ fn testnet_genesis(
 			phantom: Default::default(),
 		},
 		evm: EVMConfig {
+			_marker: Default::default(),
 			accounts: {
 				// Prefund the "ALICE" account
 				let mut accounts = std::collections::BTreeMap::new();
@@ -309,7 +313,10 @@ fn testnet_genesis(
 			sp_core::U256::from(1_000_000_000u64),
 			sp_runtime::Permill::from_parts(125_000),
 		),
-		evm_chain_id: EvmChainIdConfig { chain_id: 0x7fa },
+		evm_chain_id: EvmChainIdConfig {
+			_marker: Default::default(),
+			chain_id: 0x7fa,
+		},
 	}
 }
 

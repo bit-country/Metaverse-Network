@@ -7,7 +7,7 @@ use frame_support::{
 	parameter_types,
 	traits::{Everything, Nothing},
 	weights::Weight,
-	PalletId, RuntimeDebug,
+	PalletId,
 };
 use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
@@ -16,9 +16,9 @@ use pallet_evm::{
 	EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, IsPrecompileResult, Precompile, PrecompileSet,
 };
 use pallet_evm::{PrecompileHandle, PrecompileOutput};
-use sp_core::{ConstU128, ConstU32, MaxEncodedLen, H160, H256, U256};
+use sp_core::{ConstU128, ConstU32, ConstU8, MaxEncodedLen, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Verify};
-use sp_runtime::{AccountId32, DispatchError, MultiSignature, Perbill};
+use sp_runtime::{AccountId32, DispatchError, MultiSignature, Perbill, RuntimeDebug};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{NftAssetData, NftClassData};
@@ -34,6 +34,7 @@ use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
 use crate::nft::NftPrecompile;
+use sp_runtime::BuildStorage;
 
 use super::*;
 
@@ -41,7 +42,7 @@ pub type AccountId = AccountId32;
 //pub type ClassId = u32;
 pub type AssetId = u128;
 pub type Balance = u128;
-pub type BlockNumber = u32;
+pub type BlockNumber = u64;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 pub type Block = frame_system::mocking::MockBlock<Runtime>;
 type Signature = MultiSignature;
@@ -65,14 +66,13 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = Everything;
 	type DbWeight = ();
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = sp_runtime::generic::Header<BlockNumber, BlakeTwo256>;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
@@ -95,7 +95,7 @@ parameter_types! {
 impl pallet_timestamp::Config for Runtime {
 	type Moment = u64;
 	type OnTimestampSet = ();
-	type MinimumPeriod = MinimumPeriod;
+	type MinimumPeriod = frame_support::traits::ConstU64<1000>;
 	type WeightInfo = ();
 }
 
@@ -113,7 +113,7 @@ impl pallet_balances::Config for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = frame_support::traits::ConstU32<1>;
 	type MaxFreezes = frame_support::traits::ConstU32<1>;
@@ -167,7 +167,7 @@ pub const WEIGHT_PER_GAS: u64 = WEIGHT_REF_TIME_PER_SECOND.saturating_div(GAS_PE
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
 	pub PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
-	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
+	pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
 	pub const GasLimitPovSizeRatio: u64 = 4;
 }
 
@@ -319,7 +319,7 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<AccountId32, Self::Balance, u32>> {
+	fn auction_info(_id: AuctionId) -> Option<AuctionInfo<AccountId32, Self::Balance, BlockNumber>> {
 		None
 	}
 
@@ -327,7 +327,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<AccountId32, Self::Balance, u32>) -> DispatchResult {
+	fn update_auction(_id: AuctionId, _info: AuctionInfo<AccountId32, Self::Balance, BlockNumber>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -338,27 +338,27 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn new_auction(
 		_recipient: AccountId32,
 		_initial_amount: Self::Balance,
-		_start: u32,
-		_end: Option<u32>,
-	) -> Result<u64, DispatchError> {
+		_start: BlockNumber,
+		_end: Option<BlockNumber>,
+	) -> Result<AuctionId, DispatchError> {
 		Ok(0)
 	}
 
 	fn create_auction(
 		_auction_type: AuctionType,
 		_item_id: ItemId<Balance>,
-		_end: Option<u32>,
+		_end: Option<BlockNumber>,
 		_recipient: AccountId32,
 		_initial_amount: Self::Balance,
-		_start: u32,
+		_start: BlockNumber,
 		_listing_level: ListingLevel<AccountId>,
 		_listing_fee: Perbill,
 		_currency_id: FungibleTokenId,
-	) -> Result<u64, DispatchError> {
+	) -> Result<AuctionId, DispatchError> {
 		Ok(0)
 	}
 
-	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
+	fn remove_auction(_id: AuctionId, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(_from: AccountId, _id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
@@ -370,7 +370,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn local_auction_bid_handler(
 		_: BlockNumber,
-		_: u64,
+		_: AuctionId,
 		_: (
 			AccountId,
 			<Self as auction_manager::Auction<AccountId, BlockNumber>>::Balance,
@@ -387,7 +387,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
 		_high_bidder: &AccountId32,
-		_asset_id: &(u32, u64),
+		_asset_id: &(ClassId, TokenId),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
@@ -511,7 +511,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 
@@ -548,8 +548,8 @@ impl ExtBuilder {
 	}
 
 	pub(crate) fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.expect("Frame system builds valid default genesis config");
 
 		pallet_balances::GenesisConfig::<Runtime> {

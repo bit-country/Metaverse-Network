@@ -4,17 +4,16 @@ use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Pal
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::{
-	testing::Header,
 	traits::{ConvertInto, IdentityLookup},
 	DispatchError, Perbill,
 };
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
-use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{CollectionType, NftClassData, TokenType};
 use primitives::{Attributes, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
+use sp_runtime::BuildStorage;
 
 use crate as estate;
 
@@ -88,14 +87,13 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
@@ -127,7 +125,7 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = frame_support::traits::ConstU32<0>;
 	type MaxFreezes = frame_support::traits::ConstU32<0>;
@@ -582,7 +580,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Estate: estate:: {Pallet, Call, Storage, Event<T>},
 	}
@@ -603,8 +601,8 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {

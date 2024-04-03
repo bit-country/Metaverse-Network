@@ -19,7 +19,7 @@
 
 use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
+//#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::AtLeast32Bit;
 use sp_runtime::RuntimeDebug;
@@ -171,8 +171,23 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 	}
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(
+	Encode,
+	Decode,
+	Eq,
+	PartialEq,
+	Copy,
+	Clone,
+	RuntimeDebug,
+	MaxEncodedLen,
+	PartialOrd,
+	Ord,
+	TypeInfo,
+	Serialize,
+	Deserialize,
+)]
+#[serde(rename_all = "camelCase")]
+//#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum FungibleTokenId {
 	NativeToken(TokenId),
 	FungibleToken(TokenId),

@@ -17,7 +17,6 @@
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{Perbill, RuntimeDebug};
 
@@ -72,8 +71,8 @@ pub fn round_issuance_range<T: Config>(config: MintingRateInfo) -> Range<u64> {
 	}
 }
 
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Eq, PartialEq, Clone, Copy, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+#[derive(Eq, PartialEq, Clone, Copy, Encode, Decode, Default, RuntimeDebug, TypeInfo, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Range<T> {
 	pub min: T,
 	pub ideal: T,
@@ -96,8 +95,8 @@ impl<T: Ord + Copy> From<T> for Range<T> {
 	}
 }
 
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+#[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MintingRateInfo {
 	/// Number of metaverse expectations
 	pub expect: Range<u64>,

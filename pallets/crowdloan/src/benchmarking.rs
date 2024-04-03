@@ -30,6 +30,7 @@ use sp_std::vec;
 
 use primitives::{UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
 // use orml_traits::BasicCurrencyExtended;
+use pallet_vesting::VestingInfo;
 use primitives::Balance;
 
 #[allow(unused)]

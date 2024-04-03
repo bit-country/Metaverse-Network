@@ -4,6 +4,7 @@ use orml_traits::MultiCurrency;
 use sp_core::Pair;
 use sp_runtime::traits::{BadOrigin, IdentifyAccount};
 use sp_runtime::{MultiSignature, MultiSigner};
+use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 
 use mock::*;

@@ -18,14 +18,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
-use frame_support::traits::{Currency, VestingSchedule};
+
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use pallet_vesting::{Pallet as VestingModule, VestingInfo};
+use pallet_vesting::Pallet as VestingModule;
 
 use sp_runtime::traits::Saturating;
-use sp_std::{convert::TryInto, vec::Vec};
+use sp_std::convert::TryInto;
 
 pub use pallet::*;
 
@@ -63,7 +63,7 @@ pub mod pallet {
 		/// Vesting schedule
 		type VestingSchedule: VestingSchedule<Self::AccountId>;
 		/// Convert block number to balance
-		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
+		type BlockNumberToBalance: Convert<BlockNumberFor<Self>, BalanceOf<Self>>;
 		/// Weight implementation
 		type WeightInfo: WeightInfo;
 	}
@@ -83,7 +83,7 @@ pub mod pallet {
 		/// Beneficial Account Id, Amount
 		TokenTransferred(T::AccountId, BalanceOf<T>),
 		/// Beneficial AccountId, Amount
-		VestedTokenTransferred(T::AccountId, VestingInfo<BalanceOf<T>, T::BlockNumber>),
+		VestedTokenTransferred(T::AccountId, VestingInfo<BalanceOf<T>, BlockNumberFor<T>>),
 		/// AccountId, Schedule Index
 		RemovedRewardVestingSchedule(T::AccountId, u32),
 		/// Distributor AccountId
@@ -126,7 +126,7 @@ pub mod pallet {
 		pub fn transfer_vested_reward(
 			origin: OriginFor<T>,
 			to: <T::Lookup as StaticLookup>::Source,
-			schedule: VestingInfo<VestingBalanceOf<T>, T::BlockNumber>,
+			schedule: VestingInfo<VestingBalanceOf<T>, BlockNumberFor<T>>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin.clone())?;
 

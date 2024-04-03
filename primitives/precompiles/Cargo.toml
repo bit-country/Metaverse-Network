@@ -9,7 +9,6 @@ impl-trait-for-tuples = { workspace = true }
 log = { workspace = true, default-features = true }
 num_enum = { workspace = true }
 sha3 = { version = "0.9", default-features = false }
-similar-asserts = { workspace = true, optional = true }
 # Moonbeam
 precompile-utils-macro = { path = "macro" }
 
@@ -19,6 +18,7 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
+sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
 # Frontier
@@ -29,14 +29,20 @@ pallet-evm = { workspace = true }
 # Polkadot / XCM
 xcm = { workspace = true }
 
+# Testing
+similar-asserts = { workspace = true, optional = true }
+
 [dev-dependencies]
 hex-literal = { workspace = true }
-#assert_matches = { workspace = true }
 
 [features]
 default = ["std"]
 std = [
+    "log/std",
+    "sha3/std",
+    "xcm/std",
     "codec/std",
+    "num_enum/std",
     "fp-evm/std",
     "frame-support/std",
     "frame-system/std",
@@ -44,5 +50,6 @@ std = [
     "sp-core/std",
     "sp-io/std",
     "sp-std/std",
+    "sp-runtime/std",
 ]
-#testing = [ "similar-asserts", "std" ]
+testing = [ "similar-asserts", "std" ]

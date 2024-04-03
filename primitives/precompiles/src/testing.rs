@@ -15,17 +15,14 @@
 // along with Utils.  If not, see <http://www.gnu.org/licenses/>.
 
 use {
-	alloc::format,
-	alloc::string::String,
-	assert_matches::assert_matches,
+	alloc::{format, string::String},
+	core::assert_matches::assert_matches,
 	fp_evm::{
 		Context, ExitError, ExitReason, ExitSucceed, Log, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 		PrecompileResult, PrecompileSet, Transfer,
 	},
 	sp_core::{H160, H256, U256},
-	sp_std::boxed::Box,
-	sp_std::vec,
-	sp_std::vec::Vec,
+	sp_std::{boxed::Box, vec, vec::Vec},
 };
 
 pub struct Subcall {
