@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use cumulus_client_consensus_common::LevelLimit::Default;
 
 use hex_literal::hex;
 use log::info;
@@ -8,14 +9,16 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
 use sp_core::{sr25519, Pair, Public, H160, U256};
 use sp_runtime::traits::{IdentifyAccount, Verify};
+use xcm::latest::Junctions;
+use xcm::v3::{Junction, MultiLocation};
 
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
 	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EvmChainIdConfig, GenesisAccount,
 	GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig,
-	SystemConfig,
+	SystemConfig, AssetManagerConfig,
 };
-use primitives::Balance;
+use primitives::{AssetMetadata, Balance};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -317,7 +320,43 @@ fn testnet_genesis(
 			_marker: Default::default(),
 			chain_id: 0x7fa,
 		},
-		asset_manager: Default::default(),
+		asset_manager: AssetManagerConfig {
+			_config: Default::default(),
+			assets_info: vec![
+				(
+					MultiLocation {
+						parents: 1u8,
+						interior: Junctions::X3(
+							Junction::Parachain(1000),
+							Junction::PalletInstance(58),
+							Junction::GeneralIndex(30),
+						),
+					},
+					AssetMetadata {
+						name: "DED".as_bytes().to_vec(),
+						symbol: "DED".as_bytes().to_vec(),
+						decimals: 10,
+						minimal_balance: Default::default(),
+					}
+				),
+				(
+					MultiLocation{
+						parents: 1u8,
+						interior: Junctions::X3(
+							Junction::Parachain(1000),
+							Junction::PalletInstance(58),
+							Junction::GeneralIndex(23),
+						),
+					},
+					AssetMetadata {
+						name: "PINK".as_bytes().to_vec(),
+						symbol: "PINK".as_bytes().to_vec(),
+						decimals: 10,
+						minimal_balance: Default::default(),
+					}
+				),
+			],
+		},
 	}
 }
 
@@ -330,3 +369,4 @@ pub fn metaverse_properties() -> Properties {
 
 	properties
 }
+
