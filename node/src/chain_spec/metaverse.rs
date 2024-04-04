@@ -1,5 +1,6 @@
+use cumulus_client_consensus_common::LevelLimit::Default as LevelLimitDefault;
+use std::default;
 use std::str::FromStr;
-use cumulus_client_consensus_common::LevelLimit::Default;
 
 use hex_literal::hex;
 use log::info;
@@ -7,16 +8,17 @@ use sc_consensus_grandpa::AuthorityId as GrandpaId;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
-use sp_core::{sr25519, Pair, Public, H160, U256};
+use sp_core::{sp_std, sr25519, Pair, Public, H160, U256};
 use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_std::default::Default;
 use xcm::latest::Junctions;
 use xcm::v3::{Junction, MultiLocation};
 
 use metaverse_runtime::{
-	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EvmChainIdConfig, GenesisAccount,
-	GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig,
-	SystemConfig, AssetManagerConfig,
+	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AssetManagerConfig, AuraConfig,
+	BalancesConfig, BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EvmChainIdConfig,
+	GenesisAccount, GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature,
+	SudoConfig, SystemConfig,
 };
 use primitives::{AssetMetadata, Balance};
 
@@ -337,10 +339,10 @@ fn testnet_genesis(
 						symbol: "DED".as_bytes().to_vec(),
 						decimals: 10,
 						minimal_balance: Default::default(),
-					}
+					},
 				),
 				(
-					MultiLocation{
+					MultiLocation {
 						parents: 1u8,
 						interior: Junctions::X3(
 							Junction::Parachain(1000),
@@ -353,7 +355,7 @@ fn testnet_genesis(
 						symbol: "PINK".as_bytes().to_vec(),
 						decimals: 10,
 						minimal_balance: Default::default(),
-					}
+					},
 				),
 			],
 		},
@@ -369,4 +371,3 @@ pub fn metaverse_properties() -> Properties {
 
 	properties
 }
-
