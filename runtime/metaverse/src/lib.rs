@@ -1576,7 +1576,7 @@ construct_runtime!(
 		Treasury: pallet_treasury::{Pallet, Storage, Config<T>, Event<T>, Call},
 
 		// Asset manager
-		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
+		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>},

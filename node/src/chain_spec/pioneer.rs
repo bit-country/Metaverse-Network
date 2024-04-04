@@ -248,6 +248,7 @@ fn pioneer_genesis(
 			phantom: Default::default(),
 		},
 		treasury: Default::default(),
+		asset_manager: Default::default(),
 	}
 }
 
@@ -307,6 +308,7 @@ fn testnet_genesis(
 			phantom: Default::default(),
 		},
 		treasury: Default::default(),
+		asset_manager: Default::default(),
 	}
 }
 

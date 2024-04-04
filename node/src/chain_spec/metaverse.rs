@@ -317,6 +317,7 @@ fn testnet_genesis(
 			_marker: Default::default(),
 			chain_id: 0x7fa,
 		},
+		asset_manager: Default::default(),
 	}
 }
 

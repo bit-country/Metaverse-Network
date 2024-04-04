@@ -1866,7 +1866,7 @@ construct_runtime!(
 		Continuum: continuum::{Call, Pallet, Storage, Event<T>} = 63,
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config<T>} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
-		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
+		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>, Config<T>} = 66,
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 67,
 		// Reward mechanism
