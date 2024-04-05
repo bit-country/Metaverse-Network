@@ -650,7 +650,7 @@ pub mod pallet {
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only the owner of an estate can make this call.
 		/// - `to`: the account which will be the owner of the estate
-		/// - `estate_id`: the estate ID of the the estate that will be transferred
+		/// - `estate_id`: the estate ID of the estate that will be transferred
 		///
 		/// Emits `TransferredEstate` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_estate())]
