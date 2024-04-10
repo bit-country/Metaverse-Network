@@ -17,8 +17,8 @@ use xcm::v3::{Junction, MultiLocation};
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AssetManagerConfig, AuraConfig,
 	BalancesConfig, BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EvmChainIdConfig,
-	GenesisAccount, GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature,
-	SudoConfig, SystemConfig,
+	EvmMappingConfig, GenesisAccount, GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig,
+	SessionConfig, Signature, SudoConfig, SystemConfig,
 };
 use primitives::{AssetMetadata, Balance};
 
@@ -321,6 +321,10 @@ fn testnet_genesis(
 		evm_chain_id: EvmChainIdConfig {
 			_marker: Default::default(),
 			chain_id: 0x7fa,
+		},
+		evm_mapping: EvmMappingConfig {
+			_marker: Default::default(),
+			is_testnet_genesis: true,
 		},
 		asset_manager: AssetManagerConfig {
 			_config: Default::default(),

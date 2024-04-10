@@ -7636,6 +7636,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex-literal",
  "libsecp256k1",
  "orml-currencies",
  "orml-tokens",
