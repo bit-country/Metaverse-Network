@@ -14,8 +14,12 @@
 # The cache for chain data in container
 .local
 
-# chopsticks DB
-db.sqlite
+# These are copies chopsticks db files
+**/scripts/chopsticks/db/
+
+# Node modules for EVM tools scripts
+**/scripts/evm-tools/node_modules/
+**/scripts/evm-tools/package-lock.jso
 
 # subalfred
 subalfred
