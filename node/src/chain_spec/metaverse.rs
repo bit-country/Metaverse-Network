@@ -332,6 +332,18 @@ fn testnet_genesis(
 				(
 					MultiLocation {
 						parents: 1u8,
+						interior: Junctions::Here,
+					},
+					AssetMetadata {
+						name: "ROC".as_bytes().to_vec(),
+						symbol: "ROC".as_bytes().to_vec(),
+						decimals: 12,
+						minimal_balance: Default::default(),
+					},
+				),
+				(
+					MultiLocation {
+						parents: 1u8,
 						interior: Junctions::X3(
 							Junction::Parachain(1000),
 							Junction::PalletInstance(58),
