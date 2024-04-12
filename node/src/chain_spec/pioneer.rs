@@ -17,8 +17,8 @@ use xcm::latest::{Junction, Junctions, MultiLocation};
 
 use metaverse_runtime::MintingRateInfo;
 use pioneer_runtime::{
-	constants::currency::*, AccountId, AuraConfig, BalancesConfig, EstateConfig, GenesisConfig, OracleMembershipConfig,
-	SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY, AssetManagerConfig
+	constants::currency::*, AccountId, AssetManagerConfig, AuraConfig, BalancesConfig, EstateConfig, GenesisConfig,
+	OracleMembershipConfig, SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
 use primitives::{AssetMetadata, Balance};
 
