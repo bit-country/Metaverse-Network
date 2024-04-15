@@ -15,11 +15,12 @@
 .local
 
 # These are copies chopsticks db files
-**/scripts/chopsticks/db/
+**/scripts/chopsticks/db/*
+**db*
 
 # Node modules for EVM tools scripts
 **/scripts/evm-tools/node_modules/
-**/scripts/evm-tools/package-lock.jso
+**/scripts/evm-tools/package-lock.json
 
 # subalfred
 subalfred
