@@ -45,7 +45,7 @@ cumulus_based = true
 id = 1000
 add_to_genesis = true
 cumulus_based = true
-chain = "asset-hub-kusama-local"
+chain = "asset-hub-westend-local"
 
   [[parachains.collators]]
   name = "asset-hub-collator-1"

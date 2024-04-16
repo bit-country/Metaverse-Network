@@ -3,7 +3,7 @@ timeout = 1000
 
 [relaychain]
 default_command = "./bin/polkadot"
-chain = "kusama-local"
+chain = "rococo-local"
 
   [[relaychain.nodes]]
   name = "alice"
@@ -19,7 +19,7 @@ chain = "kusama-local"
 id = 1000
 add_to_genesis = true
 cumulus_based = true
-chain = "asset-hub-kusama-local"
+chain = "asset-hub-westend-local"
 
   [[parachains.collators]]
   name = "asset-hub-collator-1"
