@@ -9,7 +9,7 @@ working_dir="$(pwd)"
 provider=native
 zombienet_version=v1.3.100
 pdot_branch=release-polkadot-v1.6.0
-asset_hub_branch=release-polkadot-v1.1.0
+asset_hub_branch=mergebase-cumulus-v1.0.0
 polkadot_tmp_dir=/tmp/polkadot
 asset_hub_tmp_dir=/tmp/asset_hub
 
@@ -88,18 +88,18 @@ build_asset_hub() {
         return
     fi
     
-    if [ ! -f "$asset_hub_tmp_dir/$asset_hub_branch/target/release/polkadot-parachain" ]; then
+    if [ ! -f "$asset_hub_tmp_dir/$asset_hub_branch/cumulus/target/release/polkadot-parachain" ]; then
         echo "::group::Install AssetHub."
         echo "Cloning AssetHub into $asset_hub_tmp_dir"
         mkdir -p "$asset_hub_tmp_dir"
         git clone --branch "$asset_hub_branch" --depth 1 https://github.com/paritytech/polkadot-sdk "$asset_hub_tmp_dir/$asset_hub_branch" || true
         echo "Building AssetHub..."
-        cargo build --manifest-path "$asset_hub_tmp_dir/$asset_hub_branch/Cargo.toml" --release --locked --bin polkadot-parachain
-        cp "$asset_hub_tmp_dir/$asset_hub_branch/target/release/polkadot-parachain" "$bin_dir/asset-hub"
+        cargo build --manifest-path "$asset_hub_tmp_dir/$asset_hub_branch/cumulus/Cargo.toml" --release --locked --bin polkadot-parachain
+        cp "$asset_hub_tmp_dir/$asset_hub_branch/cumulus/target/release/polkadot-parachain" "$bin_dir/asset-hub"
         echo "::endgroup::"
         echo "✅ asset-hub-$asset_hub_branch"
     else
-        cp "$asset_hub_tmp_dir/$asset_hub_branch/target/release/polkadot-parachain" "$bin_dir/asset-hub"
+        cp "$asset_hub_tmp_dir/$asset_hub_branch/cumulus/target/release/polkadot-parachain" "$bin_dir/asset-hub"
         echo "✅ asset-hub-$asset_hub_branch"
     fi
 }
