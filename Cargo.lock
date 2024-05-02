@@ -6801,7 +6801,7 @@ dependencies = [
 [[package]]
 name = "orml-benchmarking"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6821,7 +6821,7 @@ dependencies = [
 [[package]]
 name = "orml-currencies"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6838,7 +6838,7 @@ dependencies = [
 [[package]]
 name = "orml-nft"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6852,7 +6852,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6870,7 +6870,7 @@ dependencies = [
 [[package]]
 name = "orml-rewards"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6887,7 +6887,7 @@ dependencies = [
 [[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6904,7 +6904,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -6924,7 +6924,7 @@ dependencies = [
 [[package]]
 name = "orml-unknown-tokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6939,7 +6939,7 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -6954,7 +6954,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6968,7 +6968,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "frame-support",
  "orml-traits",
@@ -6982,7 +6982,7 @@ dependencies = [
 [[package]]
 name = "orml-xtokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/chexware/open-runtime-module-library?branch=v-1.1.0#502c3272d0387f4b42ab6268b86f793c908af79f"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-1.1.0#77353e05d9c4f7012b9a89040e8c2253977c5e5a"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
