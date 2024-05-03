@@ -13,13 +13,14 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
+use xcm::latest::{Junction, Junctions, MultiLocation};
 
 use metaverse_runtime::MintingRateInfo;
 use pioneer_runtime::{
-	constants::currency::*, AccountId, AuraConfig, BalancesConfig, EstateConfig, GenesisConfig, OracleMembershipConfig,
-	SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
+	constants::currency::*, AccountId, AssetManagerConfig, AuraConfig, BalancesConfig, EstateConfig, GenesisConfig,
+	OracleMembershipConfig, SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
-use primitives::Balance;
+use primitives::{AssetMetadata, Balance};
 
 use crate::chain_spec::Extensions;
 
@@ -248,6 +249,7 @@ fn pioneer_genesis(
 			phantom: Default::default(),
 		},
 		treasury: Default::default(),
+		asset_manager: Default::default(),
 	}
 }
 
@@ -307,6 +309,55 @@ fn testnet_genesis(
 			phantom: Default::default(),
 		},
 		treasury: Default::default(),
+		asset_manager: AssetManagerConfig {
+			_config: Default::default(),
+			assets_info: vec![
+				(
+					MultiLocation {
+						parents: 1u8,
+						interior: Junctions::Here,
+					},
+					AssetMetadata {
+						name: "KSM".as_bytes().to_vec(),
+						symbol: "KSM".as_bytes().to_vec(),
+						decimals: 12,
+						minimal_balance: Default::default(),
+					},
+				),
+				(
+					MultiLocation {
+						parents: 1u8,
+						interior: Junctions::X3(
+							Junction::Parachain(1000),
+							Junction::PalletInstance(58),
+							Junction::GeneralIndex(30),
+						),
+					},
+					AssetMetadata {
+						name: "DED".as_bytes().to_vec(),
+						symbol: "DED".as_bytes().to_vec(),
+						decimals: 10,
+						minimal_balance: Default::default(),
+					},
+				),
+				(
+					MultiLocation {
+						parents: 1u8,
+						interior: Junctions::X3(
+							Junction::Parachain(1000),
+							Junction::PalletInstance(58),
+							Junction::GeneralIndex(23),
+						),
+					},
+					AssetMetadata {
+						name: "PINK".as_bytes().to_vec(),
+						symbol: "PINK".as_bytes().to_vec(),
+						decimals: 10,
+						minimal_balance: Default::default(),
+					},
+				),
+			],
+		},
 	}
 }
 

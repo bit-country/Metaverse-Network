@@ -5,6 +5,7 @@
 **/*.rs.bk
 # Zombienet binaries
 **/scripts/zombienet/bin/*
+**/bin/*
 .DS_Store
 
 # The cache for docker container dependency
@@ -13,8 +14,13 @@
 # The cache for chain data in container
 .local
 
-# chopsticks DB
-db.sqlite
+# These are copies chopsticks db files
+**/scripts/chopsticks/db/*
+**db*
+
+# Node modules for EVM tools scripts
+**/scripts/evm-tools/node_modules/
+**/scripts/evm-tools/package-lock.json
 
 # subalfred
 subalfred

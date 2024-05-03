@@ -35,6 +35,7 @@ use frame_support::{
 	transactional,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
+use hex_literal::hex;
 use orml_traits::currency::TransferAll;
 pub use pallet::*;
 use primitives::{AccountIndex, EvmAddress};
@@ -107,6 +108,7 @@ pub trait AddressMapping<AccountId> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use sp_core::H160;
 
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -179,6 +181,44 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn evm_addresses)]
 	pub type EvmAddresses<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, EvmAddress, OptionQuery>;
+
+	#[pallet::genesis_config]
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T: Config> {
+		pub is_testnet_genesis: bool,
+		pub _marker: PhantomData<T>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+		fn build(&self) {
+			if (self.is_testnet_genesis) {
+				// Add EVM address mapping for 5EMjsd14hMBsWVvC7bBaSC7FZQYxw1jQcZHA3Vho3pwtcbfM
+				let alice_evm = H160::from_slice(&hex_literal::hex!("d43593c715fdd31c61141abd04a99fd6822c8558"));
+				let alice_substrate = T::AddressMapping::get_account_id(&alice_evm);
+
+				<Accounts<T>>::insert(alice_evm, &alice_substrate);
+				<EvmAddresses<T>>::insert(&alice_substrate, alice_evm);
+
+				<Pallet<T>>::deposit_event(Event::ClaimAccount {
+					account_id: alice_substrate,
+					evm_address: alice_evm,
+				});
+
+				// Add EVM address for metamask test account 5EMjsczhnpcwi7AcfreSB9vdvHzbcF4EBHNYjFNwooaQ9U2W
+				let test_account_evm = H160::from_slice(&hex_literal::hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b"));
+				let test_account_substrate = T::AddressMapping::get_account_id(&test_account_evm);
+
+				<Accounts<T>>::insert(test_account_evm, &test_account_substrate);
+				<EvmAddresses<T>>::insert(&test_account_substrate, test_account_evm);
+
+				<Pallet<T>>::deposit_event(Event::ClaimAccount {
+					account_id: test_account_substrate,
+					evm_address: test_account_evm,
+				});
+			}
+		}
+	}
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);

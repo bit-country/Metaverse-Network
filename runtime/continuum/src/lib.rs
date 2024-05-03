@@ -20,7 +20,7 @@
 #![recursion_limit = "256"]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use cumulus_primitives_core::ParaId;
+
 use frame_support::traits::{
 	Contains, Currency, EitherOfDiverse, EnsureOneOf, EnsureOrigin, EqualPrivilegeOnly, Get, InstanceFilter, Nothing,
 	OnUnbalanced,
@@ -31,18 +31,17 @@ use frame_support::{
 	parameter_types,
 	traits::{Everything, Imbalance, WithdrawReasons},
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-		ConstantMultiplier, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
-		WeightToFeePolynomial,
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
+		ConstantMultiplier, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
 	},
-	BoundedVec, PalletId, WeakBoundedVec,
+	BoundedVec, PalletId,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, RawOrigin,
 };
-use orml_traits::location::{AbsoluteReserveProvider, RelativeReserveProvider, Reserve};
-use orml_traits::{arithmetic::Zero, parameter_type_with_key, MultiCurrency};
+use orml_traits::location::AbsoluteReserveProvider;
+use orml_traits::{parameter_type_with_key, MultiCurrency};
 pub use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 // XCM Imports
 use orml_xcm_support::DepositToAlternative;
@@ -50,7 +49,7 @@ use orml_xcm_support::DepositToAlternative;
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use scale_info::prelude::vec;
+
 use scale_info::TypeInfo;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
@@ -72,13 +71,11 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
-	AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, IsConcrete,
-	NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation,
-	TakeRevenue, TakeWeightCredit, UsingComponents,
+	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
+	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
-use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
+use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
 use asset_manager::{BuyWeightRateOfForeignAsset, ForeignAssetMapping};
 pub use constants::{currency::*, time::*};
@@ -86,7 +83,7 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 use metaverse_runtime_common::{CurrencyHooks, FixedRateOfAsset};
-use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
+use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex};
 
 // XCM Imports
 use crate::constants::parachains;
@@ -737,7 +734,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 pub struct MultiLocationsFilter;
 
 impl Contains<MultiLocation> for MultiLocationsFilter {
-	fn contains(m: &MultiLocation) -> bool {
+	fn contains(_m: &MultiLocation) -> bool {
 		true
 	}
 }
@@ -985,6 +982,11 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
+	pub AssetHubLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1000)));
+	pub const NuumNative: MultiAssetFilter =
+		Wild(AllOf { fun: WildFungible, id: Concrete(MultiLocation::here()) });
+	pub AssetHubTrustedTeleporter: (MultiAssetFilter, MultiLocation)
+		= (NuumNative::get(), AssetHubLocation::get());
 	// One XCM operation is 100_000_000 weight - almost certainly a conservative estimate.
 	pub UnitWeightCost: Weight = Weight::from_parts(100_000_000, 0);
 	pub const MaxInstructions: u32 = 100;
@@ -1014,7 +1016,7 @@ pub struct FungibleTokenIdConvert;
 
 impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert {
 	fn convert(id: FungibleTokenId) -> Option<MultiLocation> {
-		use FungibleTokenId::{FungibleToken, MiningResource, NativeToken, Stable};
+		use FungibleTokenId::{FungibleToken, NativeToken, Stable};
 		match id {
 			// KSM
 			NativeToken(1) => Some(MultiLocation::parent()),
@@ -1041,7 +1043,7 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 
 impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 	fn convert(location: MultiLocation) -> Option<FungibleTokenId> {
-		use FungibleTokenId::{FungibleToken, MiningResource, NativeToken, Stable};
+		use FungibleTokenId::{MiningResource, NativeToken};
 
 		// NativeToken
 		// 0 => NUUM
@@ -1065,7 +1067,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 		match location.clone() {
 			MultiLocation {
 				parents: 1,
-				interior: X2(Parachain(para_id), GeneralKey { length, data }),
+				interior: X2(Parachain(para_id), GeneralKey { length: _, data }),
 			} => match para_id {
 				// Local testing para chain id
 				3446 | 4446 => match FungibleTokenId::decode(&mut &data[..]) {
@@ -1077,7 +1079,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 				_ => None,
 			},
 			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey { length, data }) => {
+				X1(GeneralKey { length: _, data }) => {
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &data[..]) {
 						match currency_id {
@@ -1153,6 +1155,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 		Self::allow_base_call(call)
 	}
 }
+pub type TrustedTeleporters = (xcm_builder::Case<AssetHubTrustedTeleporter>,);
 
 pub struct XcmConfig;
 
@@ -1166,7 +1169,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
-	type IsTeleporter = ();
+	type IsTeleporter = TrustedTeleporters;
 	// Should be enough to allow teleportation of ROC
 	type UniversalLocation = UniversalLocation;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
@@ -1863,7 +1866,7 @@ construct_runtime!(
 		Continuum: continuum::{Call, Pallet, Storage, Event<T>} = 63,
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config<T>} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
-		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
+		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>, Config<T>} = 66,
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 67,
 		// Reward mechanism

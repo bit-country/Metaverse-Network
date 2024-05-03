@@ -19,11 +19,11 @@ pub mod currency {
 
 /// Time.
 pub mod time {
-	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND};
+	use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
 	use sp_weights::Weight;
 
 	use polkadot_primitives::MAX_POV_SIZE;
-	use primitives::{BlockNumber, Moment};
+	use primitives::BlockNumber;
 
 	use crate::{Balance, Perbill, CENTS};
 
@@ -68,7 +68,7 @@ pub mod xcm_fees {
 
 	use primitives::{Balance, FungibleTokenId};
 
-	use crate::{CENTS, MILLICENTS};
+	use crate::CENTS;
 
 	pub fn base_tx(currency: FungibleTokenId) -> Balance {
 		cent(currency) / 10

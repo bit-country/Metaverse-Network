@@ -1,0 +1,18 @@
+Description: Pioneer XCM Tests
+Network: ../mnet-pioneer.toml
+Creds: config
+
+alice: is up
+bob: is up
+asset-hub-collator: is up
+pioneer-node: is up
+
+# AssetHub
+alice: parachain 1000 is registered within 225 seconds
+alice: parachain 1000 block height is at least 10 within 250 seconds
+# MNET - Pioneer
+alice: parachain 2096 is registered within 225 seconds
+alice: parachain 2096 block height is at least 10 within 250 seconds
+
+# pioneer-node: ts-script ./transfer_ROC_from_AssetHub_to_Pioneer.ts return is greater than 0 within 500 seconds
+# pioneer-node: ts-script ./transfer_NEER_from_Pioneer_to_AssetHub.ts return is greater than 0 within 500 seconds

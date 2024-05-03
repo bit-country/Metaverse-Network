@@ -1,6 +1,9 @@
+[settings]
+timeout = 1000
+
 [relaychain]
 default_command = "./bin/polkadot"
-chain = "kusama-local"
+chain = "rococo-local"
 
   [[relaychain.nodes]]
   name = "alice"
@@ -29,6 +32,7 @@ chain = "kusama-local"
 
 [[parachains]]
 id = 2096
+chain = "metaverse-testnet"
 add_to_genesis = true
 cumulus_based = true
 
@@ -42,13 +46,14 @@ cumulus_based = true
 id = 1000
 add_to_genesis = true
 cumulus_based = true
-chain = "statemine-local"
+chain = "asset-hub-westend-local"
 
   [[parachains.collators]]
-  name = "statemine-collator"
+  name = "asset-hub-collator-1"
   command = "./bin/asset-hub"
   ws_port = 9910
   args = ["-lparachain=debug"]
+
 
 [[hrmp_channels]]
 sender = 1000

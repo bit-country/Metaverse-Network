@@ -24,7 +24,7 @@
 extern crate orml_benchmarking;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use cumulus_pallet_parachain_system::RelaychainBlockNumberProvider;
+
 // pub use this so we can import it in the chain spec.
 #[cfg(feature = "std")]
 pub use fp_evm::GenesisAccount;
@@ -46,12 +46,10 @@ pub use frame_support::{
 };
 use frame_support::{BoundedVec, ConsensusEngineId};
 // A few exports that help ease life for downstream crates.
-use frame_support::traits::{
-	Contains, EitherOfDiverse, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
-};
+use frame_support::traits::{Contains, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor, InstanceFilter, Nothing};
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	Config, EnsureRoot, EnsureSigned, RawOrigin,
+	EnsureRoot, EnsureSigned, RawOrigin,
 };
 use orml_traits::parameter_type_with_key;
 pub use pallet_balances::Call as BalancesCall;
@@ -59,10 +57,7 @@ use pallet_contracts::weights::WeightInfo;
 use pallet_ethereum::PostLogContent;
 use pallet_ethereum::{Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction};
 use pallet_evm::GasWeightMapping;
-use pallet_evm::{
-	Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner,
-	SubstrateBlockHashMapping,
-};
+use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use polkadot_primitives::MAX_POV_SIZE;
@@ -71,11 +66,7 @@ use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[cfg(not(feature = "runtime-benchmarks"))]
 use sp_core::Get;
-use sp_core::{
-	crypto::{KeyTypeId, Public},
-	sp_std::marker::PhantomData,
-	ConstBool, OpaqueMetadata, H160, H256, U256,
-};
+use sp_core::{crypto::KeyTypeId, sp_std::marker::PhantomData, ConstBool, OpaqueMetadata, H160, H256, U256};
 use sp_runtime::traits::{BlockNumberProvider, DispatchInfoOf};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -85,8 +76,8 @@ use sp_runtime::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, Dispatchable,
 		IdentifyAccount, NumberFor, OpaqueKeys, PostDispatchInfoOf, UniqueSaturatedInto, Verify, Zero,
 	},
-	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError},
-	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Perbill, Percent, Permill, Perquintill, RuntimeDebug,
+	transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
+	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Perbill, Permill, Perquintill, RuntimeDebug,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -103,8 +94,8 @@ pub use estate::{MintingRateInfo, Range as MintingRange};
 use evm_mapping::EvmAddressMapping;
 use metaverse_runtime_common::{precompiles::MetaverseNetworkPrecompiles, CurrencyHooks};
 use primitives::evm::{
-	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
-	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN, H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
+	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
+	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, PoolId, RoundIndex, TokenId};
 
@@ -871,7 +862,7 @@ impl pallet_preimage::Config for Runtime {
 pub struct FindAuthorTruncated<F>(PhantomData<F>);
 
 impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
-	fn find_author<'a, I>(digests: I) -> Option<H160>
+	fn find_author<'a, I>(_digests: I) -> Option<H160>
 	where
 		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
 	{
@@ -1574,7 +1565,7 @@ construct_runtime!(
 		EVM: pallet_evm::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config<T>, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
-		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
+		EvmMapping: evm_mapping::{Pallet, Call, Storage, Config<T>, Event<T>},
 		EvmChainId: pallet_evm_chain_id::{Pallet, Storage, Config<T>},
 
 		// ink! Smart Contracts.
@@ -1585,7 +1576,7 @@ construct_runtime!(
 		Treasury: pallet_treasury::{Pallet, Storage, Config<T>, Event<T>, Call},
 
 		// Asset manager
-		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
+		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>},

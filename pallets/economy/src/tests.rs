@@ -19,12 +19,13 @@
 
 use frame_support::{assert_noop, assert_ok};
 
-use sp_runtime::traits::{AccountIdConversion, BadOrigin};
+use sp_runtime::traits::AccountIdConversion;
 use sp_std::default::Default;
 
 use core_primitives::{Attributes, CollectionType, TokenType};
 use mock::{RuntimeEvent, *};
 use primitives::staking::Bond;
+use primitives::ClassId;
 use primitives::GroupCollectionId;
 
 use super::*;

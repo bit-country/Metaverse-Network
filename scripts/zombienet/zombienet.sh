@@ -7,9 +7,9 @@ bin_dir="$root_dir/bin"
 working_dir="$(pwd)"
 
 provider=native
-zombienet_version=v1.3.91
-pdot_branch=release-polkadot-v1.1.0
-asset_hub_branch=release-polkadot-v1.1.0
+zombienet_version=v1.3.100
+pdot_branch=release-polkadot-v1.6.0
+asset_hub_branch=mergebase-cumulus-v1.0.0
 polkadot_tmp_dir=/tmp/polkadot
 asset_hub_tmp_dir=/tmp/asset_hub
 
@@ -60,18 +60,24 @@ build_polkadot() {
         return
     fi
     
-    if [ ! -f "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot" ]; then
+    if [ ! -f "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot" ] || [ ! -f "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot-prepare-worker" ] || [ ! -f "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot-execute-worker" ]; then
         echo "::group::Install polkadot."
-        echo "Cloning polkadot into $polkadot_tmp_dir"
-        mkdir -p "$polkadot_tmp_dir"
-        git clone --branch "$pdot_branch" --depth 1 https://github.com/paritytech/polkadot-sdk "$polkadot_tmp_dir/$pdot_branch" || true
+        if [ ! -f "$polkadot_tmp_dir/$pdot_branch" ]; then
+          echo "Cloning polkadot into $polkadot_tmp_dir"
+          mkdir -p "$polkadot_tmp_dir"
+          git clone --branch "$pdot_branch" --depth 1 https://github.com/paritytech/polkadot-sdk "$polkadot_tmp_dir/$pdot_branch" || true
+        fi
         echo "Building polkadot..."
-        cargo build --manifest-path "$polkadot_tmp_dir/$pdot_branch/Cargo.toml" --features fast-runtime --release --locked
+        cargo build --manifest-path "$polkadot_tmp_dir/$pdot_branch/Cargo.toml" --locked --release --features fast-runtime --bin polkadot --bin polkadot-prepare-worker --bin polkadot-execute-worker
         cp "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot" "$bin_dir/polkadot"
+        cp "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot-prepare-worker" "$bin_dir/polkadot-prepare-worker"
+        cp "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot-execute-worker" "$bin_dir/polkadot-execute-worker"
         echo "::endgroup::"
         echo "✅ polkadot-$pdot_branch"
     else
         cp "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot" "$bin_dir/polkadot"
+        cp "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot-prepare-worker" "$bin_dir/polkadot-prepare-worker"
+        cp "$polkadot_tmp_dir/$pdot_branch/target/release/polkadot-execute-worker" "$bin_dir/polkadot-execute-worker"
         echo "✅ polkadot-$pdot_branch"
     fi
 }
@@ -82,18 +88,18 @@ build_asset_hub() {
         return
     fi
     
-    if [ ! -f "$asset_hub_tmp_dir/$asset_hub_branch/target/release/polkadot-parachain" ]; then
+    if [ ! -f "$asset_hub_tmp_dir/$asset_hub_branch/cumulus/target/release/polkadot-parachain" ]; then
         echo "::group::Install AssetHub."
         echo "Cloning AssetHub into $asset_hub_tmp_dir"
         mkdir -p "$asset_hub_tmp_dir"
         git clone --branch "$asset_hub_branch" --depth 1 https://github.com/paritytech/polkadot-sdk "$asset_hub_tmp_dir/$asset_hub_branch" || true
         echo "Building AssetHub..."
-        cargo build --manifest-path "$asset_hub_tmp_dir/$asset_hub_branch/Cargo.toml" --release --locked --bin polkadot-parachain
-        cp "$asset_hub_tmp_dir/$asset_hub_branch/target/release/polkadot-parachain" "$bin_dir/asset-hub"
+        cargo build --manifest-path "$asset_hub_tmp_dir/$asset_hub_branch/cumulus/Cargo.toml" --release --locked --bin polkadot-parachain
+        cp "$asset_hub_tmp_dir/$asset_hub_branch/cumulus/target/release/polkadot-parachain" "$bin_dir/asset-hub"
         echo "::endgroup::"
         echo "✅ asset-hub-$asset_hub_branch"
     else
-        cp "$asset_hub_tmp_dir/$asset_hub_branch/target/release/polkadot-parachain" "$bin_dir/asset-hub"
+        cp "$asset_hub_tmp_dir/$asset_hub_branch/cumulus/target/release/polkadot-parachain" "$bin_dir/asset-hub"
         echo "✅ asset-hub-$asset_hub_branch"
     fi
 }

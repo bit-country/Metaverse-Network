@@ -18,7 +18,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Encode, HasCompact};
-use frame_support::traits::ExistenceRequirement;
+
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
@@ -33,16 +33,16 @@ use sp_runtime::traits::{
 };
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	ArithmeticError, DispatchError, FixedPointNumber, Perbill, SaturatedConversion,
+	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::bounded::Rate;
-use primitives::{estate::Estate, EraIndex, EstateId, PoolId, StakingRound};
-use primitives::{Balance, ClassId, DomainId, FungibleTokenId, PowerAmount, RoundIndex};
+
+use primitives::{estate::Estate, EraIndex, EstateId};
+use primitives::{Balance, DomainId, FungibleTokenId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
 /// The Reward Pool Info.
@@ -81,8 +81,7 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::bounded::{FractionalRate, Rate};
-	use primitives::{staking::Bond, ClassId, CurrencyId, NftId, PoolId};
+	use primitives::{staking::Bond, ClassId, NftId};
 
 	use super::*;
 
@@ -1073,7 +1072,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
-	fn do_burn(who: &T::AccountId, amount: Balance) -> DispatchResult {
+	fn do_burn(_who: &T::AccountId, amount: Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}

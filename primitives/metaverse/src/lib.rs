@@ -19,7 +19,6 @@
 
 use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
 use scale_info::TypeInfo;
-//#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::AtLeast32Bit;
 use sp_runtime::RuntimeDebug;
@@ -393,7 +392,7 @@ impl Default for TokenSymbol {
 	}
 }
 
-#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
 pub struct AssetMetadata<Balance> {
 	pub name: Vec<u8>,
 	pub symbol: Vec<u8>,

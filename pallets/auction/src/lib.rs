@@ -41,7 +41,7 @@ use auction_manager::{
 };
 use core_primitives::UndeployedLandBlocksTrait;
 pub use pallet::*;
-use pallet_nft::Pallet as NFTModule;
+
 use primitives::{continuum::MapTrait, estate::Estate, AuctionId, ItemId, NftOffer};
 pub use weights::WeightInfo;
 
@@ -1199,7 +1199,7 @@ pub mod pallet {
 			}
 
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
-				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				let auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let block_number = <system::Pallet<T>>::block_number();
 
@@ -1276,7 +1276,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				let auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
@@ -1885,7 +1885,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				let auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
@@ -1939,7 +1939,7 @@ pub mod pallet {
 
 		fn extend_auction_end_time(id: AuctionId, new_end_block: BlockNumberFor<T>) -> DispatchResult {
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				let auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 				auction_item.end_time = new_end_block;
 				Ok(())
 			})

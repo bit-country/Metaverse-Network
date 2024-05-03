@@ -79,8 +79,8 @@ spawn-zombienet-basic:
 spawn-zombienet-metaverse:
 	./scripts/zombienet/zombienet.sh spawn_metaverse
 
-.PHONY: spawn-zombienet-pioneeer
-spawn-zombienet-meatverse:
+.PHONY: spawn-zombienet-pioneer
+spawn-zombienet-pioneer:
 	./scripts/zombienet/zombienet.sh spawn_pioneer
 
 .PHONY: install-chopsticks
@@ -94,6 +94,10 @@ run-chopsticks-pioneer:
 .PHONY: run-chopsticks-pioneer-xcm
 run-chopsticks-pioneer-xcm:
 	npx @acala-network/chopsticks xcm -r kusama -p statemine -p scripts/chopsticks/chopsticks_pioneer.yml
+
+.PHONY: get-default-substrate-address
+get-default-substrate-address:
+	cd ./scripts/evm-tools && npm i && node get_default_substrate_address.js $(EVM_ADDRESS) $(PREFIX)
 
 .PHONY: check-missing-std-dependencies
 check-missing-std-dependencies:

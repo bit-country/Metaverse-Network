@@ -1,15 +1,11 @@
 //! RPCs implementation.
 use cumulus_primitives_parachain_inherent::ParachainInherentData;
 use cumulus_test_relay_sproof_builder::RelayStateSproofBuilder;
-use std::collections::BTreeMap;
+
 use std::sync::Arc;
 
-use fc_rpc::{
-	pending::ConsensusDataProvider, EthBlockDataCacheTask, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
-	SchemaV2Override, SchemaV3Override, StorageOverride,
-};
+use fc_rpc::{pending::ConsensusDataProvider, EthBlockDataCacheTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
-use fp_storage::EthereumStorageSchema;
 
 use jsonrpsee::RpcModule;
 use pallet_transaction_payment_rpc;
@@ -145,7 +141,7 @@ where
 		fee_history_limit,
 		overrides,
 		block_data_cache,
-		enable_evm_rpc,
+		enable_evm_rpc: _,
 	} = deps;
 
 	io.merge(System::new(Arc::clone(&client), Arc::clone(&pool), deny_unsafe).into_rpc())?;
