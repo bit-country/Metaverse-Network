@@ -545,7 +545,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			Self::update_class_total_issuance(&sender, &class_id, 1u32)?;
+			Self::update_class_total_issuance(&sender, &class_id, 1u32, false)?;
 			// Collect minting deposit
 			let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 			let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
@@ -1167,7 +1167,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Update class total issuance
-		Self::update_class_total_issuance(&sender, &class_id, quantity)?;
+		Self::update_class_total_issuance(&sender, &class_id, quantity, false)?;
 
 		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
@@ -1212,6 +1212,7 @@ impl<T: Config> Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 		is_locked: bool,
+		is_pre_signed_mint: bool,
 	) -> Result<TokenIdOf<T>, DispatchError> {
 		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
 
@@ -1221,7 +1222,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Update class total issuance
-		Self::update_class_total_issuance(&sender, &class_id, 1u32)?;
+		Self::update_class_total_issuance(&sender, &class_id, 1u32, is_pre_signed_mint)?;
 
 		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
@@ -1301,7 +1302,9 @@ impl<T: Config> Pallet<T> {
 			)?;
 		}
 
-		Self::do_mint_nft_with_token_id(&mint_to, &mint_to, class_id, token_id, metadata, attributes, false)?;
+		Self::do_mint_nft_with_token_id(
+			&mint_to, &mint_to, class_id, token_id, metadata, attributes, false, true,
+		)?;
 
 		Ok(())
 	}
@@ -1316,8 +1319,9 @@ impl<T: Config> Pallet<T> {
 		attributes: Attributes,
 		is_locked: bool,
 	) -> Result<(ClassIdOf<T>, TokenIdOf<T>), DispatchError> {
-		let minted_token_id =
-			Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked)?;
+		let minted_token_id = Self::do_mint_nft_with_token_id(
+			&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked, false,
+		)?;
 		let nft_proxy_account: T::AccountId =
 			T::PalletId::get().into_sub_account_truncating((class_id, &minted_token_id));
 		let proxy_deposit = <pallet_proxy::Pallet<T>>::deposit(1u32);
@@ -1423,11 +1427,18 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Update total minted tokens for a class
-	fn update_class_total_issuance(sender: &T::AccountId, class_id: &ClassIdOf<T>, quantity: u32) -> DispatchResult {
+	fn update_class_total_issuance(
+		sender: &T::AccountId,
+		class_id: &ClassIdOf<T>,
+		quantity: u32,
+		is_pre_signed_mint: bool,
+	) -> DispatchResult {
 		// update class total issuance
 		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
 			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
-			ensure!(info.owner == sender.clone(), Error::<T>::NoPermission);
+			if !is_pre_signed_mint {
+				ensure!(info.owner == sender.clone(), Error::<T>::NoPermission);
+			}
 			match info.data.mint_limit {
 				Some(l) => {
 					ensure!(
@@ -1707,7 +1718,16 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError> {
-		Self::do_mint_nft_with_token_id(sender, sender, class_id, Some(token_id), metadata, attributes, false)
+		Self::do_mint_nft_with_token_id(
+			sender,
+			sender,
+			class_id,
+			Some(token_id),
+			metadata,
+			attributes,
+			false,
+			false,
+		)
 	}
 
 	fn get_free_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {
