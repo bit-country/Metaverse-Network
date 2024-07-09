@@ -1431,7 +1431,7 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		class_id: &ClassIdOf<T>,
 		quantity: u32,
-		is_signed_mint: bool,
+		is_pre_signed_mint: bool,
 	) -> DispatchResult {
 		// update class total issuance
 		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
@@ -1718,7 +1718,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError> {
-		Self::do_mint_nft_with_token_id(sender, sender, class_id, Some(token_id), metadata, attributes, false)
+		Self::do_mint_nft_with_token_id(sender, sender, class_id, Some(token_id), metadata, attributes, false, false)
 	}
 
 	fn get_free_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {
