@@ -1718,7 +1718,16 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError> {
-		Self::do_mint_nft_with_token_id(sender, sender, class_id, Some(token_id), metadata, attributes, false, false)
+		Self::do_mint_nft_with_token_id(
+			sender,
+			sender,
+			class_id,
+			Some(token_id),
+			metadata,
+			attributes,
+			false,
+			false,
+		)
 	}
 
 	fn get_free_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {
