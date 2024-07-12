@@ -1,6 +1,6 @@
 [package]
 authors = ["Metaverse Network <https://github.com/bit-country>"]
-description = "Metaverse Network emergency pallet."
+description = "Metaverse Network NFT migration pallet."
 edition = "2021"
 homepage = "https://metaverse.network"
 license = "Unlicense"
@@ -23,11 +23,11 @@ frame-benchmarking = { workspace = true, optional = true }
 
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+pallet-balances = { workspace = true }
 
 [dev-dependencies]
 sp-core = { workspace = true }
 sp-io = { workspace = true }
-pallet-balances = { workspace = true }
 smallvec = { workspace = true }
 
 [features]
@@ -41,8 +41,9 @@ std = [
     "codec/std",
     "scale-info/std",
     "sp-runtime/std",
+    "sp-std/std",
     "frame-support/std",
     "frame-system/std",
     "frame-benchmarking/std",
-    "sp-std/std",
+    "pallet-balances/std"
 ]

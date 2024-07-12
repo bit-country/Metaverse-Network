@@ -18,19 +18,19 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-//mod tests;
-//mod mock;
+mod tests;
+mod mock;
 
+use core_primitives::NFTTrait;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{CallMetadata, Contains, GetCallMetadata, PalletInfoAccess},
 	transactional,
 };
 use frame_system::pallet_prelude::*;
+use primitives::{ClassId, TokenId};
 use sp_runtime::DispatchResult;
 use sp_std::{prelude::*, vec::Vec};
-use primitives::{ClassId, TokenId};
-use core_primitives::NFTTrait;
 
 pub use pallet::*;
 // pub use weights::WeightInfo;
@@ -42,8 +42,8 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::{Currency, ReservableCurrency};
 	use super::*;
+	use frame_support::traits::{Currency, ReservableCurrency};
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -100,7 +100,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		#[pallet::weight(T::DbWeight::get().read + 2 * T::DbWeight::get().write)]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			T::MigrationOrigin::ensure_origin(origin)?;
@@ -109,7 +108,5 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::MigrationStarted);
 			Ok(())
 		}
-
 	}
 }
-
