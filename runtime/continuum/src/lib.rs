@@ -1790,6 +1790,13 @@ impl reward::Config for Runtime {
 	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 
+impl nft_migration::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type NFTSource = Nft;
+	type MigrationOrigin = EnsureRootOrMetaverseTreasury;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1873,6 +1880,8 @@ construct_runtime!(
 		Reward: reward::{Pallet, Call, Storage ,Event<T>} = 68,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
+		// NFT Migration
+		NftMigration: nft_migration::{Call, Pallet ,Storage, Event<T>} = 71,
 	}
 );
 

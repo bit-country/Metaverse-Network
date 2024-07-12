@@ -35,6 +35,7 @@ primitives = { package = "bit-country-primitives", path = "../../primitives/meta
 metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
+nft-migration = { package = "pallet-nft-migration", path = "../../pallets/nft-migration", version = "2.0.0-rc6", default-features = false }
 auction = { package = "pallet-auction", path = "../../pallets/auction", version = "2.0.0-rc6", default-features = false }
 continuum = { package = "pallet-continuum", path = "../../pallets/continuum", version = "0.0.1", default-features = false }
 mining = { package = "pallet-mining", path = "../../pallets/mining", version = "2.0.0-rc6", default-features = false }
@@ -204,6 +205,7 @@ std = [
     "metaverse/std",
     "currencies/std",
     "nft/std",
+    "nft-migration/std",
     "auction/std",
     "continuum/std",
     "mining/std",

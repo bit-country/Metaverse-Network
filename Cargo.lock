@@ -1526,6 +1526,7 @@ dependencies = [
  "pallet-mining",
  "pallet-multisig",
  "pallet-nft",
+ "pallet-nft-migration",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-reward",
@@ -8001,6 +8002,25 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-nft-migration"
+version = "2.0.0-rc6"
+dependencies = [
+ "bit-country-primitives",
+ "core-primitives",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "smallvec",
  "sp-core",
  "sp-io",
  "sp-runtime",
