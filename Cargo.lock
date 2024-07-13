@@ -6066,6 +6066,7 @@ dependencies = [
  "pallet-metaverse",
  "pallet-mining",
  "pallet-nft",
+ "pallet-nft-migration",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-reward",

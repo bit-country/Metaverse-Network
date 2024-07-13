@@ -1795,6 +1795,7 @@ impl nft_migration::Config for Runtime {
 	type Currency = Balances;
 	type NFTSource = Nft;
 	type MigrationOrigin = EnsureRootOrMetaverseTreasury;
+	type WeightInfo = weights::module_nft_migration::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

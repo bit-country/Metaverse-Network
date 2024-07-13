@@ -30,14 +30,14 @@ use core_primitives::{CollectionType, NFTTrait, NftAssetData, NftClassData, NftG
 use primitives::{Attributes, ClassId, GroupCollectionId, NftMetadata, TokenId};
 
 pub use pallet::*;
-// pub use weights::WeightInfo;
+pub use weights::WeightInfo;
 
 mod mock;
 mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-//pub mod weights;
+pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -53,8 +53,8 @@ pub mod pallet {
 		type NFTSource: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 		/// Accounts that can set start migration
 		type MigrationOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
-		// /// Extrinsics' weights
-		//type WeightInfo: WeightInfo;
+		/// Extrinsics' weights
+		type WeightInfo: WeightInfo;
 	}
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -107,7 +107,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(T::DbWeight::get().read + 2 * T::DbWeight::get().write)]
+		#[pallet::weight(<T as Config>::WeightInfo::start_migration())]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			T::MigrationOrigin::ensure_origin(origin)?;
 			ensure!(!Self::is_migration_active(), Error::<T>::MigrationInProgress);
@@ -119,6 +119,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	///
 	fn migrate_pioneer_nft_data() -> DispatchResult {
 		let pioneer_collections_data: Vec<(GroupCollectionId, NftGroupCollectionData)> =
 			Self::fetch_pioneer_nft_collections_data()?;
@@ -134,6 +135,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Fecthing Pioneer collections data from database via HTTP
 	fn fetch_pioneer_nft_collections_data() -> Result<Vec<(GroupCollectionId, NftGroupCollectionData)>, DispatchError> {
 		// TODO: Fetch Pioneer collection data from DB
 		//Self::deposit_event(Event::<T>::FetchedCollectionData);
@@ -150,13 +152,16 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Fecthing Pioneer classes data from database via HTTP
 	fn fetch_pioneer_nft_class_data() -> Result<Vec<(ClassId, NftClassData<BalanceOf<T>>)>, DispatchError> {
 		// TODO: Fetch Pioneer classes data from DB
 		//Self::deposit_event(Event::<T>::FetchedClassData);
 		return Ok(vec![]);
 	}
 
-	fn create_nft_classes_from_pioneer_data(pioneer_class_data: &Vec<(ClassId, NftClassData<BalanceOf<T>>)>) -> DispatchResult {
+	fn create_nft_classes_from_pioneer_data(
+		pioneer_class_data: &Vec<(ClassId, NftClassData<BalanceOf<T>>)>,
+	) -> DispatchResult {
 		for (class_id, class_data) in pioneer_class_data.iter() {
 			// TODO: Create new classes
 		}
@@ -164,13 +169,16 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Fecthing Pioneer tokens data from database via HTTP
 	fn fetch_pioneer_nft_token_data() -> Result<Vec<(TokenId, NftAssetData<BalanceOf<T>>)>, DispatchError> {
 		// TODO: Fetch Pioneer tokens data from DB
 		//Self::deposit_event(Event::<T>::FetchedTokenData);
 		return Ok(vec![]);
 	}
 
-	fn mint_nft_tokens_from_pioneer_data(pioneer_token_data: &Vec<(TokenId, NftAssetData<BalanceOf<T>>)>) -> DispatchResult {
+	fn mint_nft_tokens_from_pioneer_data(
+		pioneer_token_data: &Vec<(TokenId, NftAssetData<BalanceOf<T>>)>,
+	) -> DispatchResult {
 		for (token_id, token_data) in pioneer_token_data.iter() {
 			// TODO: Mint new tokens
 		}

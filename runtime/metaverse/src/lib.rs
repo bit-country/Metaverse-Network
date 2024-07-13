@@ -1509,6 +1509,14 @@ impl spp::Config for Runtime {
 	type GovernanceOrigin = EnsureRootOrTwoThirdsCouncilCollective;
 }
 
+impl nft_migration::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type NFTSource = Nft;
+	type MigrationOrigin = EnsureRootOrMetaverseTreasury;
+	type WeightInfo = weights::module_nft_migration::WeightInfo<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1540,6 +1548,7 @@ construct_runtime!(
 		// Metaverse & Related
 		OrmlNFT: orml_nft::{Pallet, Storage},
 		Nft: nft::{Pallet, Call, Storage, Event<T>},
+		NftMigration: nft_migration::{Call, Pallet ,Storage, Event<T>},
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
 		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Event<T>},
@@ -2175,6 +2184,7 @@ impl_runtime_apis! {
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
 			use evm_mapping::benchmarking::EvmMappingModule as EvmMappingBench;
+			use nft_migration::benchmarking::NftMigrationModule as NftMigrationBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -2182,6 +2192,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_balances, Balances);
 			list_benchmark!(list, extra, pallet_timestamp, Timestamp);
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
+			list_benchmark!(list, extra, nft_migration, NftMigrationBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
@@ -2216,6 +2227,8 @@ impl_runtime_apis! {
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
 			use evm_mapping::benchmarking::EvmMappingModule as EvmMappingBench;
+			use nft_migration::benchmarking::NftMigrationModule as NftMigrationBench;
+
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -2243,6 +2256,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
 			add_benchmark!(params, batches, emergency, EmergencyBench::<Runtime>);
 			add_benchmark!(params, batches, evm_mapping, EvmMappingBench::<Runtime>);
+			add_benchmark!(params, batches, nft_migration, NftMigrationBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
 			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			orml_add_benchmark!(params, batches, economy, benchmarking::economy);
