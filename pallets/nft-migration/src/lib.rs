@@ -18,26 +18,25 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-mod tests;
-mod mock;
-
-use core_primitives::NFTTrait;
 use frame_support::{
 	pallet_prelude::*,
-	traits::{CallMetadata, Contains, GetCallMetadata, PalletInfoAccess},
-	transactional,
+	traits::{Contains, GetCallMetadata, PalletInfoAccess},
 };
 use frame_system::pallet_prelude::*;
-use primitives::{ClassId, TokenId};
 use sp_runtime::DispatchResult;
-use sp_std::{prelude::*, vec::Vec};
+use sp_std::prelude::*;
+
+use core_primitives::{CollectionType, NFTTrait, NftAssetData, NftClassData, NftGroupCollectionData, TokenType};
+use primitives::{Attributes, ClassId, GroupCollectionId, NftMetadata, TokenId};
 
 pub use pallet::*;
 // pub use weights::WeightInfo;
 
-//#[cfg(feature = "runtime-benchmarks")]
-//pub mod benchmarking;
+mod mock;
+mod tests;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 //pub mod weights;
 
 #[frame_support::pallet]
@@ -68,9 +67,21 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Started the nft migration
+		/// Started the nft data migration
 		MigrationStarted,
-		/// Comleted the nft migration
+		/// Fetched the nft collections data
+		FetchedCollectionData,
+		/// Fetched the nft classes data
+		FetchedClassData,
+		/// Fetched the nft token data
+		FetchedTokenData,
+		/// Completed the nft collections data migration
+		CollectionDataMigrationCompleted,
+		/// Completed the nft classes data migration
+		ClassDataMigrationCompleted,
+		/// Completed the nft tokens data migration
+		TokenDataMigrationCompleted,
+		/// Completed the nft data migration
 		MigrationCompleted,
 	}
 
@@ -87,12 +98,8 @@ pub mod pallet {
 		/// Hook that is called every time a new block is initialized.
 		fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
 			if Self::is_migration_active() {
-				// TODO: Fetch Pioneer collection data from DB
-				// TODO: Create collections
-				// TODO: Fetch Pioneer class data from DB
-				// TODO: Mint new classes
-				// TODO: Fetch Pioneer token data from DB
-				// TODO: Mint new tokens
+				Self::migrate_pioneer_nft_data();
+				Self::deposit_event(Event::<T>::MigrationCompleted);
 			}
 			Weight::from_parts(0, 0)
 		}
@@ -108,5 +115,66 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::MigrationStarted);
 			Ok(())
 		}
+	}
+}
+
+impl<T: Config> Pallet<T> {
+	fn migrate_pioneer_nft_data() -> DispatchResult {
+		let pioneer_collections_data: Vec<(GroupCollectionId, NftGroupCollectionData)> =
+			Self::fetch_pioneer_nft_collections_data()?;
+		Self::create_nft_collections_from_pioneer_data(&pioneer_collections_data)?;
+
+		let pioneer_class_data: Vec<(ClassId, NftClassData<BalanceOf<T>>)> = Self::fetch_pioneer_nft_class_data()?;
+		Self::create_nft_classes_from_pioneer_data(&pioneer_class_data)?;
+
+		let pioneer_token_data: Vec<(TokenId, NftAssetData<BalanceOf<T>>)> = Self::fetch_pioneer_nft_token_data()?;
+		Self::mint_nft_tokens_from_pioneer_data(&pioneer_token_data)?;
+
+		ActiveMigrationStatus::<T>::put(false);
+		Ok(())
+	}
+
+	fn fetch_pioneer_nft_collections_data() -> Result<Vec<(GroupCollectionId, NftGroupCollectionData)>, DispatchError> {
+		// TODO: Fetch Pioneer collection data from DB
+		//Self::deposit_event(Event::<T>::FetchedCollectionData);
+		return Ok(vec![]);
+	}
+
+	fn create_nft_collections_from_pioneer_data(
+		pioneer_collections_data: &Vec<(GroupCollectionId, NftGroupCollectionData)>,
+	) -> DispatchResult {
+		for (collection_id, pioneer_collections_data) in pioneer_collections_data.iter() {
+			// TODO: Create new collections
+		}
+		//Self::deposit_event(Event::<T>::CollectionDataMigrationCompleted);
+		Ok(())
+	}
+
+	fn fetch_pioneer_nft_class_data() -> Result<Vec<(ClassId, NftClassData<BalanceOf<T>>)>, DispatchError> {
+		// TODO: Fetch Pioneer classes data from DB
+		//Self::deposit_event(Event::<T>::FetchedClassData);
+		return Ok(vec![]);
+	}
+
+	fn create_nft_classes_from_pioneer_data(pioneer_class_data: &Vec<(ClassId, NftClassData<BalanceOf<T>>)>) -> DispatchResult {
+		for (class_id, class_data) in pioneer_class_data.iter() {
+			// TODO: Create new classes
+		}
+		//Self::deposit_event(Event::<T>::ClassDataMigrationCompleted);
+		Ok(())
+	}
+
+	fn fetch_pioneer_nft_token_data() -> Result<Vec<(TokenId, NftAssetData<BalanceOf<T>>)>, DispatchError> {
+		// TODO: Fetch Pioneer tokens data from DB
+		//Self::deposit_event(Event::<T>::FetchedTokenData);
+		return Ok(vec![]);
+	}
+
+	fn mint_nft_tokens_from_pioneer_data(pioneer_token_data: &Vec<(TokenId, NftAssetData<BalanceOf<T>>)>) -> DispatchResult {
+		for (token_id, token_data) in pioneer_token_data.iter() {
+			// TODO: Mint new tokens
+		}
+		//Self::deposit_event(Event::<T>::TokenDataMigrationCompleted);
+		Ok(())
 	}
 }

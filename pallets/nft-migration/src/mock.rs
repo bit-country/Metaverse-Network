@@ -1,20 +1,19 @@
 #![cfg(test)]
 
-use sp_std::collections::btree_map::BTreeMap;
 use core_primitives::{CollectionType, NftClassData, TokenType};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use primitives::{Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
+use sp_runtime::testing::H256;
 use sp_runtime::{
 	traits::{ConvertInto, IdentityLookup},
 	BuildStorage, DispatchError, Perbill,
 };
+use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
-use sp_runtime::testing::H256;
 
-
-use crate as nft_migration;
 use super::*;
+use crate as nft_migration;
 
 pub type AccountId = u128;
 pub type Balance = u128;
