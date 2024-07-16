@@ -23,7 +23,7 @@ use frame_support::{
 	traits::{Contains, GetCallMetadata, PalletInfoAccess},
 };
 use frame_system::pallet_prelude::*;
-use sp_runtime::DispatchResult;
+use sp_runtime::{offchain::http::Request, DispatchResult};
 use sp_std::prelude::*;
 
 use core_primitives::{CollectionType, NFTTrait, NftAssetData, NftClassData, NftGroupCollectionData, TokenType};
@@ -38,6 +38,10 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
 pub mod weights;
+
+pub const PIONEER_COLLECTIONS_HTTP_ENDPOINT: &str = "";
+pub const PIONEER_CLASSES_HTTP_ENDPOINT: &str = "";
+pub const PIONEER_TOKENS_HTTP_ENDPOINT: &str = "";
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -62,6 +66,8 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// Migration is already active
 		MigrationInProgress,
+		/// Pioneer data is not found at endpoint
+		PioneerDataNotFound,
 	}
 
 	#[pallet::event]
@@ -95,13 +101,12 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		/// Hook that is called every time a new block is initialized.
-		fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
+		/// Offchain worker hook
+		fn offchain_worker(block_number: BlockNumberFor<T>) {
 			if Self::is_migration_active() {
 				Self::migrate_pioneer_nft_data();
 				Self::deposit_event(Event::<T>::MigrationCompleted);
 			}
-			Weight::from_parts(0, 0)
 		}
 	}
 
@@ -119,16 +124,18 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	///
+	/// Internal Pioneer data migration flow
 	fn migrate_pioneer_nft_data() -> DispatchResult {
 		let pioneer_collections_data: Vec<(GroupCollectionId, NftGroupCollectionData)> =
-			Self::fetch_pioneer_nft_collections_data()?;
+			Self::fetch_pioneer_nft_collections_data(PIONEER_COLLECTIONS_HTTP_ENDPOINT)?;
 		Self::create_nft_collections_from_pioneer_data(&pioneer_collections_data)?;
 
-		let pioneer_class_data: Vec<(ClassId, NftClassData<BalanceOf<T>>)> = Self::fetch_pioneer_nft_class_data()?;
+		let pioneer_class_data: Vec<(ClassId, NftClassData<BalanceOf<T>>)> =
+			Self::fetch_pioneer_nft_class_data(PIONEER_CLASSES_HTTP_ENDPOINT)?;
 		Self::create_nft_classes_from_pioneer_data(&pioneer_class_data)?;
 
-		let pioneer_token_data: Vec<(TokenId, NftAssetData<BalanceOf<T>>)> = Self::fetch_pioneer_nft_token_data()?;
+		let pioneer_token_data: Vec<(TokenId, NftAssetData<BalanceOf<T>>)> =
+			Self::fetch_pioneer_nft_token_data(PIONEER_TOKENS_HTTP_ENDPOINT)?;
 		Self::mint_nft_tokens_from_pioneer_data(&pioneer_token_data)?;
 
 		ActiveMigrationStatus::<T>::put(false);
@@ -136,8 +143,20 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Fecthing Pioneer collections data from database via HTTP
-	fn fetch_pioneer_nft_collections_data() -> Result<Vec<(GroupCollectionId, NftGroupCollectionData)>, DispatchError> {
-		// TODO: Fetch Pioneer collection data from DB
+	fn fetch_pioneer_nft_collections_data(
+		endpoint_address: &str,
+	) -> Result<Vec<(GroupCollectionId, NftGroupCollectionData)>, DispatchError> {
+		let pioneer_collections_request = Request::get(endpoint_address);
+		// TODO: Add correct request header
+		let pending = pioneer_collections_request
+			.add_header("X-Auth", "hunter2")
+			.send()
+			.unwrap();
+		let mut response = pending.wait().unwrap();
+		let body = response.body();
+		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
+		// TODO: Process data into Vec<(GroupCollectionId, NftGroupCollectionData>
+		//let collection_data = body.collect::<Vec<(GroupCollectionId, NftGroupCollectionData)>>();
 		//Self::deposit_event(Event::<T>::FetchedCollectionData);
 		return Ok(vec![]);
 	}
@@ -153,8 +172,16 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Fecthing Pioneer classes data from database via HTTP
-	fn fetch_pioneer_nft_class_data() -> Result<Vec<(ClassId, NftClassData<BalanceOf<T>>)>, DispatchError> {
-		// TODO: Fetch Pioneer classes data from DB
+	fn fetch_pioneer_nft_class_data(
+		endpoint_address: &str,
+	) -> Result<Vec<(ClassId, NftClassData<BalanceOf<T>>)>, DispatchError> {
+		let pioneer_classes_request = Request::get(endpoint_address);
+		// TODO: Add correct request header
+		let pending = pioneer_classes_request.add_header("X-Auth", "hunter2").send().unwrap();
+		let mut response = pending.wait().unwrap();
+		let body = response.body();
+		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
+		// TODO: Process data into Vec<(ClassId, NftClassData<BalanceOf<T>>)>
 		//Self::deposit_event(Event::<T>::FetchedClassData);
 		return Ok(vec![]);
 	}
@@ -169,9 +196,17 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	/// Fecthing Pioneer tokens data from database via HTTP
-	fn fetch_pioneer_nft_token_data() -> Result<Vec<(TokenId, NftAssetData<BalanceOf<T>>)>, DispatchError> {
-		// TODO: Fetch Pioneer tokens data from DB
+	/// Fetching Pioneer tokens data from database via HTTP
+	fn fetch_pioneer_nft_token_data(
+		endpoint_address: &str,
+	) -> Result<Vec<(TokenId, NftAssetData<BalanceOf<T>>)>, DispatchError> {
+		let pioneer_tokens_request = Request::get(endpoint_address);
+		// TODO: Add correct request header
+		let pending = pioneer_tokens_request.add_header("X-Auth", "hunter2").send().unwrap();
+		let mut response = pending.wait().unwrap();
+		let body = response.body();
+		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
+		// TODO: Process data into Vec<(TokenId, NftAssetData<BalanceOf<T>>)>
 		//Self::deposit_event(Event::<T>::FetchedTokenData);
 		return Ok(vec![]);
 	}
