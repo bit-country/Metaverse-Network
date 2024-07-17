@@ -17,17 +17,19 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
-
 use frame_support::{
 	pallet_prelude::*,
 	traits::{Contains, GetCallMetadata, PalletInfoAccess},
 };
+use frame_system::offchain::{CreateSignedTransaction, SendUnsignedTransaction, SubmitTransaction};
 use frame_system::pallet_prelude::*;
 use sp_runtime::{offchain::http::Request, DispatchResult};
 use sp_std::prelude::*;
 
-use core_primitives::{CollectionType, NFTTrait, NftAssetData, NftClassData, NftGroupCollectionData, TokenType};
-use primitives::{Attributes, ClassId, GroupCollectionId, NftMetadata, TokenId};
+use core_primitives::{
+	CollectionType, NFTTrait, NftAssetData, NftClassData, NftGroupCollectionData, NftMetadata, TokenType,
+};
+use primitives::{Attributes, ClassId, GroupCollectionId, TokenId};
 
 pub use pallet::*;
 pub use weights::WeightInfo;
@@ -47,9 +49,11 @@ pub const PIONEER_TOKENS_HTTP_ENDPOINT: &str = "";
 pub mod pallet {
 	use super::*;
 	use frame_support::traits::{Currency, ReservableCurrency};
+	use frame_system::pallet_prelude::*;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: CreateSignedTransaction<Call<Self>> + frame_system::Config {
+		/// Runtime event type
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Currency type
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
@@ -66,7 +70,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// Migration is already active
 		MigrationInProgress,
-		/// Pioneer data is not found at endpoint
+		/// No Pioneer data is found at given endpoint
 		PioneerDataNotFound,
 	}
 
@@ -120,6 +124,68 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::MigrationStarted);
 			Ok(())
 		}
+
+		#[pallet::weight(<T as Config>::WeightInfo::start_migration())]
+		pub fn migrate_collection_unsigned(
+			origin: OriginFor<T>,
+			collection_id: GroupCollectionId,
+			collection_data: NftGroupCollectionData,
+		) -> DispatchResult {
+			ensure_none(origin)?;
+			// TODO: Validate that the collection_id parameter is the next available collection_id
+			// TODO: Expose collection creation to NFTTrait and mint a collection
+
+			Ok(())
+		}
+
+		#[pallet::weight(<T as Config>::WeightInfo::start_migration())]
+		pub fn migrate_class_unsigned(
+			origin: OriginFor<T>,
+			collection_id: GroupCollectionId,
+			class_id: ClassId,
+			metadata: NftMetadata,
+			class_data: NftClassData<BalanceOf<T>>,
+		) -> DispatchResult {
+			ensure_none(origin)?;
+			// TODO: Validate that the class_id parameter is the next available class_id
+			/*
+			T::NFTSource::create_token_class(
+				// TODO: Use MigrationOrigin to create class with specified owner class owner
+				T::MigrationOrigin::get(),
+				metadata,
+				class_data.attributes,
+				collection_id,
+				class_data.token_type,
+				class_data.collection_type,
+				class_data.royalty_fee,
+				class_data.mint_limit,
+			)?;
+			 */
+			Ok(())
+		}
+
+		#[pallet::weight(<T as Config>::WeightInfo::start_migration())]
+		pub fn migrate_token_unsigned(
+			origin: OriginFor<T>,
+			class_id: ClassId,
+			token_id: TokenId,
+			metadata: NftMetadata,
+			token_data: NftAssetData<BalanceOf<T>>,
+		) -> DispatchResult {
+			ensure_none(origin)?;
+			// TODO: Validate that the token_id parameter is the next available token_id
+			// TODO: Use MigrationOrigin to create token with specified owner token owner
+			/*
+			T::NFTSource::mint_token_with_id(
+				T::MigrationOrigin::get(),
+				class_id,
+				token_id,
+				metadata,
+				token_data.attributes,
+			)?;
+			 */
+			Ok(())
+		}
 	}
 }
 
@@ -130,11 +196,11 @@ impl<T: Config> Pallet<T> {
 			Self::fetch_pioneer_nft_collections_data(PIONEER_COLLECTIONS_HTTP_ENDPOINT)?;
 		Self::create_nft_collections_from_pioneer_data(&pioneer_collections_data)?;
 
-		let pioneer_class_data: Vec<(ClassId, NftClassData<BalanceOf<T>>)> =
+		let pioneer_class_data: Vec<(GroupCollectionId, ClassId, NftMetadata, NftClassData<BalanceOf<T>>)> =
 			Self::fetch_pioneer_nft_class_data(PIONEER_CLASSES_HTTP_ENDPOINT)?;
 		Self::create_nft_classes_from_pioneer_data(&pioneer_class_data)?;
 
-		let pioneer_token_data: Vec<(TokenId, NftAssetData<BalanceOf<T>>)> =
+		let pioneer_token_data: Vec<(ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)> =
 			Self::fetch_pioneer_nft_token_data(PIONEER_TOKENS_HTTP_ENDPOINT)?;
 		Self::mint_nft_tokens_from_pioneer_data(&pioneer_token_data)?;
 
@@ -142,7 +208,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	/// Fecthing Pioneer collections data from database via HTTP
+	/// Fetches Pioneer collections data from database via HTTP
 	fn fetch_pioneer_nft_collections_data(
 		endpoint_address: &str,
 	) -> Result<Vec<(GroupCollectionId, NftGroupCollectionData)>, DispatchError> {
@@ -164,58 +230,78 @@ impl<T: Config> Pallet<T> {
 	fn create_nft_collections_from_pioneer_data(
 		pioneer_collections_data: &Vec<(GroupCollectionId, NftGroupCollectionData)>,
 	) -> DispatchResult {
-		for (collection_id, pioneer_collections_data) in pioneer_collections_data.iter() {
-			// TODO: Create new collections
+		for (collection_id, collection_data) in pioneer_collections_data.iter() {
+			let call = Call::migrate_collection_unsigned {
+				collection_id: *collection_id,
+				collection_data: (*collection_data).clone(),
+			};
+			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
+				.map_err(|()| "Unable to submit unsigned transaction.")?;
 		}
 		//Self::deposit_event(Event::<T>::CollectionDataMigrationCompleted);
 		Ok(())
 	}
 
-	/// Fecthing Pioneer classes data from database via HTTP
+	/// Fetches Pioneer classes data from database via HTTP
 	fn fetch_pioneer_nft_class_data(
 		endpoint_address: &str,
-	) -> Result<Vec<(ClassId, NftClassData<BalanceOf<T>>)>, DispatchError> {
+	) -> Result<Vec<(GroupCollectionId, ClassId, NftMetadata, NftClassData<BalanceOf<T>>)>, DispatchError> {
 		let pioneer_classes_request = Request::get(endpoint_address);
 		// TODO: Add correct request header
 		let pending = pioneer_classes_request.add_header("X-Auth", "hunter2").send().unwrap();
 		let mut response = pending.wait().unwrap();
 		let body = response.body();
 		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
-		// TODO: Process data into Vec<(ClassId, NftClassData<BalanceOf<T>>)>
-		//Self::deposit_event(Event::<T>::FetchedClassData);
+		// TODO: Process data into Vec<(GroupCollectionId, ClassId, NftMetadata,
+		// NftClassData<BalanceOf<T>>)> Self::deposit_event(Event::<T>::FetchedClassData);
 		return Ok(vec![]);
 	}
 
 	fn create_nft_classes_from_pioneer_data(
-		pioneer_class_data: &Vec<(ClassId, NftClassData<BalanceOf<T>>)>,
+		pioneer_class_data: &Vec<(GroupCollectionId, ClassId, NftMetadata, NftClassData<BalanceOf<T>>)>,
 	) -> DispatchResult {
-		for (class_id, class_data) in pioneer_class_data.iter() {
-			// TODO: Create new classes
+		for (collection_id, class_id, metadata, class_data) in pioneer_class_data.iter() {
+			let call = Call::migrate_class_unsigned {
+				collection_id: *collection_id,
+				class_id: *class_id,
+				metadata: (*metadata).clone(),
+				class_data: (*class_data).clone(),
+			};
+			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
+				.map_err(|()| "Unable to submit unsigned transaction.")?;
 		}
 		//Self::deposit_event(Event::<T>::ClassDataMigrationCompleted);
 		Ok(())
 	}
 
-	/// Fetching Pioneer tokens data from database via HTTP
+	/// Fetches Pioneer tokens data from database via HTTP
 	fn fetch_pioneer_nft_token_data(
 		endpoint_address: &str,
-	) -> Result<Vec<(TokenId, NftAssetData<BalanceOf<T>>)>, DispatchError> {
+	) -> Result<Vec<(ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>, DispatchError> {
 		let pioneer_tokens_request = Request::get(endpoint_address);
 		// TODO: Add correct request header
 		let pending = pioneer_tokens_request.add_header("X-Auth", "hunter2").send().unwrap();
 		let mut response = pending.wait().unwrap();
 		let body = response.body();
 		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
-		// TODO: Process data into Vec<(TokenId, NftAssetData<BalanceOf<T>>)>
+		// TODO: Process data into Vec<(ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>
 		//Self::deposit_event(Event::<T>::FetchedTokenData);
 		return Ok(vec![]);
 	}
 
 	fn mint_nft_tokens_from_pioneer_data(
-		pioneer_token_data: &Vec<(TokenId, NftAssetData<BalanceOf<T>>)>,
+		pioneer_token_data: &Vec<(ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>,
 	) -> DispatchResult {
-		for (token_id, token_data) in pioneer_token_data.iter() {
+		for (class_id, token_id, metadata, token_data) in pioneer_token_data.iter() {
 			// TODO: Mint new tokens
+			let call = Call::migrate_token_unsigned {
+				class_id: *class_id,
+				token_id: *token_id,
+				metadata: (*metadata).clone(),
+				token_data: (*token_data).clone(),
+			};
+			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
+				.map_err(|()| "Unable to submit unsigned transaction.")?;
 		}
 		//Self::deposit_event(Event::<T>::TokenDataMigrationCompleted);
 		Ok(())

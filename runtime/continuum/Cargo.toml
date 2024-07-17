@@ -69,6 +69,7 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-system-benchmarking = { workspace = true, optional = true }
 frame-system-rpc-runtime-api = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 
 ## Substrate Pallet Dependencies
 pallet-aura = { workspace = true }
@@ -136,6 +137,7 @@ runtime-benchmarks = [
 std = [
     "frame-benchmarking/std",
     "frame-system-benchmarking/std",
+    "frame-metadata-hash-extension/std",
     "cumulus-pallet-session-benchmarking/std",
     "codec/std",
     "scale-info/std",

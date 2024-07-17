@@ -35,6 +35,7 @@ frame-system = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 
 sp-api = { workspace = true }
 sp-io = { workspace = true }
@@ -72,6 +73,7 @@ pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 # Used for runtime benchmarking
 frame-benchmarking = { workspace = true, optional = true }
 frame-system-benchmarking = { workspace = true, optional = true }
+
 
 # EVM pallets
 pallet-evm = { workspace = true }
@@ -133,6 +135,7 @@ cumulus-primitives-timestamp = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 parachain-info = { workspace = true }
+log = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
@@ -140,6 +143,7 @@ substrate-wasm-builder = { workspace = true }
 [features]
 default = ["std"]
 std = [
+    "log/std",
     "codec/std",
     "serde",
     "serde_json/std",
@@ -148,6 +152,7 @@ std = [
     "frame-executive/std",
     "frame-support/std",
     "frame-system-rpc-runtime-api/std",
+    "frame-metadata-hash-extension/std",
     "frame-system/std",
     "pallet-aura/std",
     "pallet-balances/std",
