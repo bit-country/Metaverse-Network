@@ -242,8 +242,9 @@ impl<T: Config> Pallet<T> {
 		let mut response = pending.wait().unwrap();
 		let body = response.body();
 		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
-		// TODO: Process data into Vec<(T::AccountId, GroupCollectionId, ClassId, NftMetadata, NftClassData<BalanceOf<T>>)>
-		// NftClassData<BalanceOf<T>>)> Self::deposit_event(Event::<T>::FetchedClassData);
+		// TODO: Process data into Vec<(T::AccountId, GroupCollectionId, ClassId, NftMetadata,
+		// NftClassData<BalanceOf<T>>)> NftClassData<BalanceOf<T>>)>
+		// Self::deposit_event(Event::<T>::FetchedClassData);
 		return Ok(vec![]);
 	}
 	/// Fetches Pioneer tokens data from database via HTTP
@@ -256,8 +257,9 @@ impl<T: Config> Pallet<T> {
 		let mut response = pending.wait().unwrap();
 		let body = response.body();
 		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
-		// TODO: Process data into Vec<(T::AccountId, ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>
-		// NftAssetData<BalanceOf<T>>)> Self::deposit_event(Event::<T>::FetchedTokenData);
+		// TODO: Process data into Vec<(T::AccountId, ClassId, TokenId, NftMetadata,
+		// NftAssetData<BalanceOf<T>>)> NftAssetData<BalanceOf<T>>)>
+		// Self::deposit_event(Event::<T>::FetchedTokenData);
 		return Ok(vec![]);
 	}
 

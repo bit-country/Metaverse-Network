@@ -8042,12 +8042,19 @@ dependencies = [
 name = "pallet-nft-migration"
 version = "2.0.0-rc6"
 dependencies = [
+ "auction-manager",
  "bit-country-primitives",
  "core-primitives",
+ "currencies",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "orml-nft",
+ "orml-tokens",
+ "orml-traits",
  "pallet-balances",
+ "pallet-nft",
+ "pallet-proxy",
  "parity-scale-codec",
  "scale-info",
  "smallvec",

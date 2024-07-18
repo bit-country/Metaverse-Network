@@ -438,25 +438,7 @@ pub mod pallet {
 			properties: NftMetadata,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-
-			ensure!(
-				name.len() as u32 <= T::MaxMetadata::get() && properties.len() as u32 <= T::MaxMetadata::get(),
-				Error::<T>::ExceedMaximumMetadataLength
-			);
-
 			let next_group_collection_id = Self::do_create_group_collection(name.clone(), properties.clone())?;
-
-			let collection_data = NftGroupCollectionData { name, properties };
-
-			GroupCollections::<T>::insert(next_group_collection_id, collection_data);
-
-			let all_collection_count = Self::all_nft_collection_count();
-			let new_all_nft_collection_count = all_collection_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding a new collection to total collection")?;
-
-			AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
-
 			Self::deposit_event(Event::<T>::NewNftCollectionCreated(next_group_collection_id));
 			Ok(().into())
 		}
@@ -1053,6 +1035,10 @@ impl<T: Config> Pallet<T> {
 
 	/// Internal creation of group collection
 	fn do_create_group_collection(name: Vec<u8>, properties: Vec<u8>) -> Result<GroupCollectionId, DispatchError> {
+		ensure!(
+			name.len() as u32 <= T::MaxMetadata::get() && properties.len() as u32 <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
 		let next_group_collection_id =
 			NextGroupCollectionId::<T>::try_mutate(|collection_id| -> Result<GroupCollectionId, DispatchError> {
 				let current_id = *collection_id;
@@ -1067,6 +1053,13 @@ impl<T: Config> Pallet<T> {
 		let collection_data = NftGroupCollectionData { name, properties };
 
 		<GroupCollections<T>>::insert(next_group_collection_id, collection_data);
+
+		let all_collection_count = Self::all_nft_collection_count();
+		let new_all_nft_collection_count = all_collection_count
+			.checked_add(One::one())
+			.ok_or("Overflow adding a new collection to total collection")?;
+
+		AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
 		Ok(next_group_collection_id)
 	}
@@ -1790,6 +1783,8 @@ impl<T: Config> NFTMigrationTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		colllection_id: GroupCollectionId,
 		collection_data: NftGroupCollectionData,
 	) -> DispatchResult {
+		Self::do_create_group_collection(collection_data.name, collection_data.properties)?;
+
 		Ok(())
 	}
 
@@ -1800,7 +1795,22 @@ impl<T: Config> NFTMigrationTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		class_metadata: NftMetadata,
 		class_data: NftClassData<BalanceOf<T>>,
 	) -> sp_runtime::DispatchResult {
-		Ok(())
+		Self::do_create_class(
+			owner,
+			class_metadata,
+			class_data.attributes,
+			collection_id,
+			class_data.token_type,
+			class_data.collection_type,
+			class_data.royalty_fee,
+			class_data.mint_limit,
+		)?;
+		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+			info.data.is_locked = class_data.is_locked;
+			Ok(())
+		})
+		// TODO: Transfer class creation fees back to owner
 	}
 
 	fn migrate_token(
@@ -1810,6 +1820,17 @@ impl<T: Config> NFTMigrationTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		token_metadata: NftMetadata,
 		token_data: NftAssetData<BalanceOf<T>>,
 	) -> sp_runtime::DispatchResult {
+		Self::do_mint_nft_with_token_id(
+			owner,
+			owner,
+			class_id,
+			Some(token_id),
+			token_metadata,
+			token_data.attributes,
+			token_data.is_locked,
+			false,
+		);
+		// TODO: Transfer token minting fees back to owner
 		Ok(())
 	}
 }

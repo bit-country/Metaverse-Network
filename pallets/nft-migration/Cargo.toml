@@ -21,14 +21,22 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 
+pallet-balances = { workspace = true }
+
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
-pallet-balances = { workspace = true }
 
 [dev-dependencies]
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 smallvec = { workspace = true }
+orml-tokens = { workspace = true, default-features = true }
+orml-nft = { workspace = true, default-features = true }
+orml-traits = { workspace = true, default-features = true }
+pallet-nft = { path = "../nft" }
+currencies = { path = "../currencies" }
+pallet-proxy = { workspace = true, default-features = true }
+auction-manager = { package = "auction-manager", path = "../../traits/auction-manager" }
 
 [features]
 runtime-benchmarks = [
@@ -45,5 +53,5 @@ std = [
     "frame-support/std",
     "frame-system/std",
     "frame-benchmarking/std",
-    "pallet-balances/std"
+    "pallet-balances/std",
 ]
