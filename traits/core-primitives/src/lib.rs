@@ -328,6 +328,38 @@ pub trait NFTTrait<AccountId, Balance> {
 	) -> DispatchResult;
 }
 
+pub trait NFTMigrationTrait<AccountId, Balance> {
+	/// Token identifier
+	type TokenId;
+	/// Token class identifier
+	type ClassId;
+	/// Get the next collection id
+	fn get_next_collection_id() -> GroupCollectionId;
+	/// Get the next class id
+	fn get_next_class_id() -> Self::ClassId;
+	/// Get the current token id
+	fn get_next_token_id(class_id: Self::ClassId) -> Self::TokenId;
+	/// Migrate collection
+	fn migrate_collection(colllection_id: GroupCollectionId, collection_data: NftGroupCollectionData)
+		-> DispatchResult;
+	/// Migrate class
+	fn migrate_class(
+		owner: &AccountId,
+		class_id: Self::ClassId,
+		collection_id: GroupCollectionId,
+		class_metadata: NftMetadata,
+		class_data: NftClassData<Balance>,
+	) -> DispatchResult;
+	/// Migrate token
+	fn migrate_token(
+		owner: &AccountId,
+		token_id: Self::TokenId,
+		class_id: Self::ClassId,
+		token_metadata: NftMetadata,
+		token_data: NftAssetData<Balance>,
+	) -> DispatchResult;
+}
+
 pub trait RoundTrait<BlockNumber> {
 	fn get_current_round_info() -> RoundInfo<BlockNumber>;
 }

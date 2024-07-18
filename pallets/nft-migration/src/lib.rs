@@ -27,7 +27,7 @@ use sp_runtime::{offchain::http::Request, DispatchResult};
 use sp_std::prelude::*;
 
 use core_primitives::{
-	CollectionType, NFTTrait, NftAssetData, NftClassData, NftGroupCollectionData, NftMetadata, TokenType,
+	CollectionType, NFTMigrationTrait, NftAssetData, NftClassData, NftGroupCollectionData, NftMetadata, TokenType,
 };
 use primitives::{Attributes, ClassId, GroupCollectionId, TokenId};
 
@@ -58,7 +58,7 @@ pub mod pallet {
 		/// Currency type
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		/// NFT trait required for minting NFTs
-		type NFTSource: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+		type NFTSource: NFTMigrationTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 		/// Accounts that can set start migration
 		type MigrationOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 		/// Extrinsics' weights
@@ -72,6 +72,8 @@ pub mod pallet {
 		MigrationInProgress,
 		/// No Pioneer data is found at given endpoint
 		PioneerDataNotFound,
+		/// Provided migration data is inconsistent with the current state of the chain
+		InconsistentMigrationData,
 	}
 
 	#[pallet::event]
@@ -132,58 +134,47 @@ pub mod pallet {
 			collection_data: NftGroupCollectionData,
 		) -> DispatchResult {
 			ensure_none(origin)?;
-			// TODO: Validate that the collection_id parameter is the next available collection_id
-			// TODO: Expose collection creation to NFTTrait and mint a collection
-
+			ensure!(
+				T::NFTSource::get_next_collection_id() == collection_id,
+				Error::<T>::InconsistentMigrationData
+			);
+			T::NFTSource::migrate_collection(collection_id, collection_data);
 			Ok(())
 		}
 
 		#[pallet::weight(<T as Config>::WeightInfo::start_migration())]
 		pub fn migrate_class_unsigned(
 			origin: OriginFor<T>,
+			owner: T::AccountId,
 			collection_id: GroupCollectionId,
 			class_id: ClassId,
 			metadata: NftMetadata,
 			class_data: NftClassData<BalanceOf<T>>,
 		) -> DispatchResult {
 			ensure_none(origin)?;
-			// TODO: Validate that the class_id parameter is the next available class_id
-			/*
-			T::NFTSource::create_token_class(
-				// TODO: Use MigrationOrigin to create class with specified owner class owner
-				T::MigrationOrigin::get(),
-				metadata,
-				class_data.attributes,
-				collection_id,
-				class_data.token_type,
-				class_data.collection_type,
-				class_data.royalty_fee,
-				class_data.mint_limit,
-			)?;
-			 */
+			ensure!(
+				T::NFTSource::get_next_class_id() == class_id,
+				Error::<T>::InconsistentMigrationData
+			);
+			T::NFTSource::migrate_class(&owner, class_id, collection_id, metadata, class_data)?;
 			Ok(())
 		}
 
 		#[pallet::weight(<T as Config>::WeightInfo::start_migration())]
 		pub fn migrate_token_unsigned(
 			origin: OriginFor<T>,
+			owner: T::AccountId,
 			class_id: ClassId,
 			token_id: TokenId,
 			metadata: NftMetadata,
 			token_data: NftAssetData<BalanceOf<T>>,
 		) -> DispatchResult {
 			ensure_none(origin)?;
-			// TODO: Validate that the token_id parameter is the next available token_id
-			// TODO: Use MigrationOrigin to create token with specified owner token owner
-			/*
-			T::NFTSource::mint_token_with_id(
-				T::MigrationOrigin::get(),
-				class_id,
-				token_id,
-				metadata,
-				token_data.attributes,
-			)?;
-			 */
+			ensure!(
+				T::NFTSource::get_next_token_id(class_id) == token_id,
+				Error::<T>::InconsistentMigrationData
+			);
+			T::NFTSource::migrate_token(&owner, token_id, class_id, metadata, token_data)?;
 			Ok(())
 		}
 	}
@@ -196,11 +187,16 @@ impl<T: Config> Pallet<T> {
 			Self::fetch_pioneer_nft_collections_data(PIONEER_COLLECTIONS_HTTP_ENDPOINT)?;
 		Self::create_nft_collections_from_pioneer_data(&pioneer_collections_data)?;
 
-		let pioneer_class_data: Vec<(GroupCollectionId, ClassId, NftMetadata, NftClassData<BalanceOf<T>>)> =
-			Self::fetch_pioneer_nft_class_data(PIONEER_CLASSES_HTTP_ENDPOINT)?;
+		let pioneer_class_data: Vec<(
+			T::AccountId,
+			GroupCollectionId,
+			ClassId,
+			NftMetadata,
+			NftClassData<BalanceOf<T>>,
+		)> = Self::fetch_pioneer_nft_class_data(PIONEER_CLASSES_HTTP_ENDPOINT)?;
 		Self::create_nft_classes_from_pioneer_data(&pioneer_class_data)?;
 
-		let pioneer_token_data: Vec<(ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)> =
+		let pioneer_token_data: Vec<(T::AccountId, ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)> =
 			Self::fetch_pioneer_nft_token_data(PIONEER_TOKENS_HTTP_ENDPOINT)?;
 		Self::mint_nft_tokens_from_pioneer_data(&pioneer_token_data)?;
 
@@ -227,6 +223,44 @@ impl<T: Config> Pallet<T> {
 		return Ok(vec![]);
 	}
 
+	/// Fetches Pioneer classes data from database via HTTP
+	fn fetch_pioneer_nft_class_data(
+		endpoint_address: &str,
+	) -> Result<
+		Vec<(
+			T::AccountId,
+			GroupCollectionId,
+			ClassId,
+			NftMetadata,
+			NftClassData<BalanceOf<T>>,
+		)>,
+		DispatchError,
+	> {
+		let pioneer_classes_request = Request::get(endpoint_address);
+		// TODO: Add correct request header
+		let pending = pioneer_classes_request.add_header("X-Auth", "hunter2").send().unwrap();
+		let mut response = pending.wait().unwrap();
+		let body = response.body();
+		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
+		// TODO: Process data into Vec<(T::AccountId, GroupCollectionId, ClassId, NftMetadata, NftClassData<BalanceOf<T>>)>
+		// NftClassData<BalanceOf<T>>)> Self::deposit_event(Event::<T>::FetchedClassData);
+		return Ok(vec![]);
+	}
+	/// Fetches Pioneer tokens data from database via HTTP
+	fn fetch_pioneer_nft_token_data(
+		endpoint_address: &str,
+	) -> Result<Vec<(T::AccountId, ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>, DispatchError> {
+		let pioneer_tokens_request = Request::get(endpoint_address);
+		// TODO: Add correct request header
+		let pending = pioneer_tokens_request.add_header("X-Auth", "hunter2").send().unwrap();
+		let mut response = pending.wait().unwrap();
+		let body = response.body();
+		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
+		// TODO: Process data into Vec<(T::AccountId, ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>
+		// NftAssetData<BalanceOf<T>>)> Self::deposit_event(Event::<T>::FetchedTokenData);
+		return Ok(vec![]);
+	}
+
 	fn create_nft_collections_from_pioneer_data(
 		pioneer_collections_data: &Vec<(GroupCollectionId, NftGroupCollectionData)>,
 	) -> DispatchResult {
@@ -236,72 +270,50 @@ impl<T: Config> Pallet<T> {
 				collection_data: (*collection_data).clone(),
 			};
 			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
-				.map_err(|()| "Unable to submit unsigned transaction.")?;
+				.map_err(|()| "Unable to submit unsigned collection migration transaction.")?;
 		}
 		//Self::deposit_event(Event::<T>::CollectionDataMigrationCompleted);
 		Ok(())
 	}
 
-	/// Fetches Pioneer classes data from database via HTTP
-	fn fetch_pioneer_nft_class_data(
-		endpoint_address: &str,
-	) -> Result<Vec<(GroupCollectionId, ClassId, NftMetadata, NftClassData<BalanceOf<T>>)>, DispatchError> {
-		let pioneer_classes_request = Request::get(endpoint_address);
-		// TODO: Add correct request header
-		let pending = pioneer_classes_request.add_header("X-Auth", "hunter2").send().unwrap();
-		let mut response = pending.wait().unwrap();
-		let body = response.body();
-		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
-		// TODO: Process data into Vec<(GroupCollectionId, ClassId, NftMetadata,
-		// NftClassData<BalanceOf<T>>)> Self::deposit_event(Event::<T>::FetchedClassData);
-		return Ok(vec![]);
-	}
-
 	fn create_nft_classes_from_pioneer_data(
-		pioneer_class_data: &Vec<(GroupCollectionId, ClassId, NftMetadata, NftClassData<BalanceOf<T>>)>,
+		pioneer_class_data: &Vec<(
+			T::AccountId,
+			GroupCollectionId,
+			ClassId,
+			NftMetadata,
+			NftClassData<BalanceOf<T>>,
+		)>,
 	) -> DispatchResult {
-		for (collection_id, class_id, metadata, class_data) in pioneer_class_data.iter() {
+		for (owner, collection_id, class_id, metadata, class_data) in pioneer_class_data.iter() {
 			let call = Call::migrate_class_unsigned {
+				owner: (*owner).clone(),
 				collection_id: *collection_id,
 				class_id: *class_id,
 				metadata: (*metadata).clone(),
 				class_data: (*class_data).clone(),
 			};
 			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
-				.map_err(|()| "Unable to submit unsigned transaction.")?;
+				.map_err(|()| "Unable to submit unsigned class migration transaction.")?;
 		}
 		//Self::deposit_event(Event::<T>::ClassDataMigrationCompleted);
 		Ok(())
 	}
 
-	/// Fetches Pioneer tokens data from database via HTTP
-	fn fetch_pioneer_nft_token_data(
-		endpoint_address: &str,
-	) -> Result<Vec<(ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>, DispatchError> {
-		let pioneer_tokens_request = Request::get(endpoint_address);
-		// TODO: Add correct request header
-		let pending = pioneer_tokens_request.add_header("X-Auth", "hunter2").send().unwrap();
-		let mut response = pending.wait().unwrap();
-		let body = response.body();
-		ensure!(!body.error().is_none(), Error::<T>::PioneerDataNotFound);
-		// TODO: Process data into Vec<(ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>
-		//Self::deposit_event(Event::<T>::FetchedTokenData);
-		return Ok(vec![]);
-	}
-
+	/// Internally migrate Pioneer tokens using the  fetched data
 	fn mint_nft_tokens_from_pioneer_data(
-		pioneer_token_data: &Vec<(ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>,
+		pioneer_token_data: &Vec<(T::AccountId, ClassId, TokenId, NftMetadata, NftAssetData<BalanceOf<T>>)>,
 	) -> DispatchResult {
-		for (class_id, token_id, metadata, token_data) in pioneer_token_data.iter() {
-			// TODO: Mint new tokens
+		for (owner, class_id, token_id, metadata, token_data) in pioneer_token_data.iter() {
 			let call = Call::migrate_token_unsigned {
+				owner: (*owner).clone(),
 				class_id: *class_id,
 				token_id: *token_id,
 				metadata: (*metadata).clone(),
 				token_data: (*token_data).clone(),
 			};
 			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
-				.map_err(|()| "Unable to submit unsigned transaction.")?;
+				.map_err(|()| "Unable to submit unsigned token migration transaction.")?;
 		}
 		//Self::deposit_event(Event::<T>::TokenDataMigrationCompleted);
 		Ok(())

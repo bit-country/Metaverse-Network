@@ -49,7 +49,9 @@ use sp_std::vec::Vec;
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
-pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
+pub use primitive_traits::{
+	Attributes, NFTMigrationTrait, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType,
+};
 use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1, PreSignedMint};
 use primitives::{AssetId, ClassId, GroupCollectionId, ItemId, TokenId};
 pub use weights::WeightInfo;
@@ -1764,6 +1766,50 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	) -> DispatchResult {
 		NftModule::<T>::transfer_stackable_nft(&sender, &to, *asset_id, amount);
 
+		Ok(())
+	}
+}
+
+impl<T: Config> NFTMigrationTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
+	type TokenId = TokenIdOf<T>;
+	type ClassId = ClassIdOf<T>;
+
+	fn get_next_collection_id() -> GroupCollectionId {
+		Self::next_group_collection_id()
+	}
+
+	fn get_next_class_id() -> Self::ClassId {
+		NftModule::<T>::next_class_id()
+	}
+
+	fn get_next_token_id(class_id: Self::ClassId) -> Self::TokenId {
+		NftModule::<T>::next_token_id(class_id)
+	}
+
+	fn migrate_collection(
+		colllection_id: GroupCollectionId,
+		collection_data: NftGroupCollectionData,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn migrate_class(
+		owner: &T::AccountId,
+		class_id: Self::ClassId,
+		collection_id: GroupCollectionId,
+		class_metadata: NftMetadata,
+		class_data: NftClassData<BalanceOf<T>>,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+
+	fn migrate_token(
+		owner: &T::AccountId,
+		token_id: Self::TokenId,
+		class_id: Self::ClassId,
+		token_metadata: NftMetadata,
+		token_data: NftAssetData<BalanceOf<T>>,
+	) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
 }
