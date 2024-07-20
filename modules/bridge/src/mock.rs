@@ -11,7 +11,7 @@ use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{traits::IdentityLookup, ModuleError, Perbill};
 
-use core_primitives::{Attributes, CollectionType, NFTTrait, NftClassData, NftMetadata, TokenType};
+use core_primitives::{Attributes, CollectionType, NFTTrait, NftClassData, NftMetadata, TokenType, NftAssetData};
 use primitives::{
 	continuum::MapTrait, Amount, ClassId, EstateId, FungibleTokenId, GroupCollectionId, MapSpotId, TokenId,
 	UndeployedLandBlockId,
@@ -383,16 +383,11 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		CLASS_FUND_ID
 	}
 
-	fn get_nft_detail(_asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
-		let new_data = NftClassData {
+	fn get_nft_detail(_asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftAssetData<Balance>, DispatchError> {
+		let new_data = NftAssetData {
 			deposit: 0,
 			attributes: test_attributes(1),
-			token_type: TokenType::Transferable,
-			collection_type: CollectionType::Collectable,
 			is_locked: false,
-			royalty_fee: Perbill::from_percent(0u32),
-			mint_limit: None,
-			total_minted_tokens: 0u32,
 		};
 		Ok(new_data)
 	}

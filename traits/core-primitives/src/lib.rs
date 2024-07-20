@@ -247,7 +247,7 @@ pub trait NFTTrait<AccountId, Balance> {
 	/// Check the ownership of this nft asset
 	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError>;
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftAssetData<Balance>, DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
 	/// Check if the asset is a stackable NFT

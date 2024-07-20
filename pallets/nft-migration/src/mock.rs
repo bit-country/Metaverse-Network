@@ -36,7 +36,7 @@ pub type Extrinsic = TestXt<RuntimeCall, ()>;
 pub const ALICE: AccountId = AccountId32::new([1; 32]);
 pub const BOB: AccountId = AccountId32::new([5; 32]);
 pub const COLLECTION_ID: GroupCollectionId = 0;
-pub const CLASS_ID: ClassId = 1;
+pub const CLASS_ID: ClassId = 0;
 
 fn test_attributes(x: u8) -> Attributes {
 	let mut attr: Attributes = BTreeMap::new();
@@ -290,7 +290,7 @@ parameter_types! {
 	pub const StorageDepositFee: Balance = 1;
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 12;
-	pub MaxMetadata: u32 = 10;
+	pub MaxMetadata: u32 = 1024;
 	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");

@@ -138,7 +138,7 @@ pub mod pallet {
 				T::NFTSource::get_next_collection_id() == collection_id,
 				Error::<T>::InconsistentMigrationData
 			);
-			T::NFTSource::migrate_collection(collection_data);
+			T::NFTSource::migrate_collection(collection_data)?;
 			Ok(())
 		}
 

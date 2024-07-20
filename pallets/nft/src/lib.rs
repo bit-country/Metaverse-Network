@@ -1550,8 +1550,8 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		Ok(who == &asset_info.owner)
 	}
 
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<BalanceOf<T>>, DispatchError> {
-		let asset_info = NftModule::<T>::classes(asset_id.0).ok_or(Error::<T>::AssetInfoNotFound)?;
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftAssetData<BalanceOf<T>>, DispatchError> {
+		let asset_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
 
 		Ok(asset_info.data)
 	}
@@ -1820,12 +1820,12 @@ impl<T: Config> NFTMigrationTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			owner,
 			owner,
 			class_id,
-			Some(token_id),
+			None,
 			token_metadata,
 			token_data.attributes,
 			token_data.is_locked,
 			false,
-		);
+		)?;
 		// TODO: Transfer token minting fees back to owner
 		Ok(())
 	}

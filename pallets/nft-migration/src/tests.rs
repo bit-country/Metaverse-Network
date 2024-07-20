@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use core_primitives::NFTTrait;
 use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_runtime::{traits::BadOrigin, Perbill};
 use std::collections::BTreeMap;
@@ -45,7 +46,7 @@ fn test_attributes(x: u8) -> core_primitives::Attributes {
 
 fn get_test_class_data() -> NftClassData<Balance> {
 	NftClassData {
-		deposit: 1,
+		deposit: 5,
 		attributes: test_attributes(10),
 		token_type: TokenType::Transferable,
 		collection_type: CollectionType::Collectable,
@@ -58,7 +59,7 @@ fn get_test_class_data() -> NftClassData<Balance> {
 
 fn get_test_token_data() -> NftAssetData<Balance> {
 	NftAssetData {
-		deposit: 1,
+		deposit: 2,
 		attributes: test_attributes(20),
 		is_locked: false,
 	}
@@ -84,14 +85,18 @@ fn start_migration_should_work() {
 #[test]
 fn migrating_single_collection_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		init_test_collection();
 		let collection_id = Nft::get_next_collection_id();
 		assert_ok!(NftMigration::migrate_collection_unsigned(
 			RuntimeOrigin::none(),
 			collection_id,
 			get_test_collection_data()
 		));
-		//assert_eq!(Nft::get_group_collection(collection_id), Some(get_test_collection_data()));
-		//assert_eq!(Nft::get_next_collection_id(), collection_id + 1);
+		assert_eq!(Nft::get_next_collection_id(), collection_id + 1);
+		assert_eq!(
+			Nft::get_group_collection(collection_id),
+			Some(get_test_collection_data())
+		);
 	});
 }
 
@@ -119,6 +124,10 @@ fn migrating_single_class_should_work() {
 			get_test_metadata(),
 			get_test_class_data(),
 		));
+		assert_eq!(Nft::get_next_class_id(), class_id + 1);
+		assert_eq!(Nft::get_nft_group_collection(&class_id), Ok(COLLECTION_ID));
+		assert_eq!(Nft::get_nft_class_detail(class_id), Ok(get_test_class_data()));
+		assert_eq!(Nft::get_total_issuance(class_id), Ok(0));
 	});
 }
 
@@ -154,6 +163,9 @@ fn migrating_single_token_should_work() {
 			get_test_metadata(),
 			get_test_token_data(),
 		));
+		assert_eq!(Nft::get_next_token_id(CLASS_ID), token_id + 1);
+		assert_eq!(Nft::get_nft_detail((CLASS_ID, token_id)), Ok(get_test_token_data()));
+		assert_eq!(Nft::check_ownership(&ALICE, &(CLASS_ID, token_id)), Ok(true));
 	});
 }
 
