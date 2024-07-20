@@ -35,6 +35,8 @@ pub type Extrinsic = TestXt<RuntimeCall, ()>;
 
 pub const ALICE: AccountId = AccountId32::new([1; 32]);
 pub const BOB: AccountId = AccountId32::new([5; 32]);
+pub const COLLECTION_ID: GroupCollectionId = 0;
+pub const CLASS_ID: ClassId = 1;
 
 fn test_attributes(x: u8) -> Attributes {
 	let mut attr: Attributes = BTreeMap::new();

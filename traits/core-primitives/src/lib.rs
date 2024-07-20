@@ -340,8 +340,7 @@ pub trait NFTMigrationTrait<AccountId, Balance> {
 	/// Get the current token id
 	fn get_next_token_id(class_id: Self::ClassId) -> Self::TokenId;
 	/// Migrate collection
-	fn migrate_collection(colllection_id: GroupCollectionId, collection_data: NftGroupCollectionData)
-		-> DispatchResult;
+	fn migrate_collection(collection_data: NftGroupCollectionData) -> DispatchResult;
 	/// Migrate class
 	fn migrate_class(
 		owner: &AccountId,

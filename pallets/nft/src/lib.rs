@@ -1779,12 +1779,8 @@ impl<T: Config> NFTMigrationTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		NftModule::<T>::next_token_id(class_id)
 	}
 
-	fn migrate_collection(
-		colllection_id: GroupCollectionId,
-		collection_data: NftGroupCollectionData,
-	) -> DispatchResult {
+	fn migrate_collection(collection_data: NftGroupCollectionData) -> DispatchResult {
 		Self::do_create_group_collection(collection_data.name, collection_data.properties)?;
-
 		Ok(())
 	}
 
