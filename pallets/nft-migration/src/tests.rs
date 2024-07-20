@@ -155,6 +155,7 @@ fn migrating_single_token_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_class(RuntimeOrigin::signed(ALICE));
 		let token_id = Nft::get_next_token_id(CLASS_ID);
+		assert_eq!(Nft::get_total_issuance(CLASS_ID), Ok(0));
 		assert_ok!(NftMigration::migrate_token_unsigned(
 			RuntimeOrigin::none(),
 			ALICE,
@@ -166,6 +167,7 @@ fn migrating_single_token_should_work() {
 		assert_eq!(Nft::get_next_token_id(CLASS_ID), token_id + 1);
 		assert_eq!(Nft::get_nft_detail((CLASS_ID, token_id)), Ok(get_test_token_data()));
 		assert_eq!(Nft::check_ownership(&ALICE, &(CLASS_ID, token_id)), Ok(true));
+		assert_eq!(Nft::get_total_issuance(CLASS_ID), Ok(1));
 	});
 }
 

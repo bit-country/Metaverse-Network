@@ -14,7 +14,10 @@ use sp_runtime::{
 };
 use sp_std::collections::btree_map::BTreeMap;
 
-use metaverse_primitive::{Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseMetadata, MetaverseTrait, NFTTrait, NftClassData, NftMetadata, TokenType, NftAssetData};
+use metaverse_primitive::{
+	Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseMetadata,
+	MetaverseTrait, NFTTrait, NftAssetData, NftClassData, NftMetadata, TokenType,
+};
 use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, TokenId};
 use sp_runtime::BuildStorage;
 

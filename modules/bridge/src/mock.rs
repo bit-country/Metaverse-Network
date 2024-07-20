@@ -11,7 +11,7 @@ use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{traits::IdentityLookup, ModuleError, Perbill};
 
-use core_primitives::{Attributes, CollectionType, NFTTrait, NftClassData, NftMetadata, TokenType, NftAssetData};
+use core_primitives::{Attributes, CollectionType, NFTTrait, NftAssetData, NftClassData, NftMetadata, TokenType};
 use primitives::{
 	continuum::MapTrait, Amount, ClassId, EstateId, FungibleTokenId, GroupCollectionId, MapSpotId, TokenId,
 	UndeployedLandBlockId,
