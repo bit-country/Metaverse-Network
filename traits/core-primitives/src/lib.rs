@@ -247,7 +247,7 @@ pub trait NFTTrait<AccountId, Balance> {
 	/// Check the ownership of this nft asset
 	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError>;
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftAssetData<Balance>, DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
 	/// Check if the asset is a stackable NFT
@@ -325,6 +325,37 @@ pub trait NFTTrait<AccountId, Balance> {
 		to: &AccountId,
 		nft: &(Self::ClassId, Self::TokenId),
 		amount: Balance,
+	) -> DispatchResult;
+}
+
+pub trait NFTMigrationTrait<AccountId, Balance> {
+	/// Token identifier
+	type TokenId;
+	/// Token class identifier
+	type ClassId;
+	/// Get the next collection id
+	fn get_next_collection_id() -> GroupCollectionId;
+	/// Get the next class id
+	fn get_next_class_id() -> Self::ClassId;
+	/// Get the current token id
+	fn get_next_token_id(class_id: Self::ClassId) -> Self::TokenId;
+	/// Migrate collection
+	fn migrate_collection(collection_data: NftGroupCollectionData) -> DispatchResult;
+	/// Migrate class
+	fn migrate_class(
+		owner: &AccountId,
+		class_id: Self::ClassId,
+		collection_id: GroupCollectionId,
+		class_metadata: NftMetadata,
+		class_data: NftClassData<Balance>,
+	) -> DispatchResult;
+	/// Migrate token
+	fn migrate_token(
+		owner: &AccountId,
+		token_id: Self::TokenId,
+		class_id: Self::ClassId,
+		token_metadata: NftMetadata,
+		token_data: NftAssetData<Balance>,
 	) -> DispatchResult;
 }
 

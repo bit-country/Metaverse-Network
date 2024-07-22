@@ -30,6 +30,7 @@ pallet-timestamp = { workspace = true }
 pallet-scheduler = { workspace = true, optional = true }
 pallet-proxy = { workspace = true }
 
+
 sp-core = { workspace = true }
 pallet-balances = { workspace = true }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }

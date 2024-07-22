@@ -35,6 +35,7 @@ frame-system = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 
 sp-api = { workspace = true }
 sp-io = { workspace = true }
@@ -73,6 +74,7 @@ pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-system-benchmarking = { workspace = true, optional = true }
 
+
 # EVM pallets
 pallet-evm = { workspace = true }
 pallet-evm-chain-id = { workspace = true }
@@ -96,6 +98,7 @@ auction-manager = { package = "auction-manager", path = "../../traits/auction-ma
 metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
 estate = { package = "pallet-estate", path = "../../pallets/estate", default-features = false }
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
+nft-migration = { package = "pallet-nft-migration", path = "../../pallets/nft-migration", version = "2.0.0-rc6", default-features = false }
 continuum = { package = "pallet-continuum", path = "../../pallets/continuum", version = "0.0.1", default-features = false }
 auction = { package = "pallet-auction", path = "../../pallets/auction", version = "2.0.0-rc6", default-features = false }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
@@ -110,6 +113,7 @@ metaverse-runtime-common = { path = "../common", default-features = false }
 asset-manager = { path = "../../pallets/asset-manager", default-features = false }
 evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", default-features = false }
 spp = { package = "pallet-spp", path = "../../pallets/spp", default-features = false }
+
 
 modules-bridge = { path = "../../modules/bridge", default-features = false }
 
@@ -131,6 +135,7 @@ cumulus-primitives-timestamp = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 parachain-info = { workspace = true }
+log = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
@@ -138,6 +143,7 @@ substrate-wasm-builder = { workspace = true }
 [features]
 default = ["std"]
 std = [
+    "log/std",
     "codec/std",
     "serde",
     "serde_json/std",
@@ -146,6 +152,7 @@ std = [
     "frame-executive/std",
     "frame-support/std",
     "frame-system-rpc-runtime-api/std",
+    "frame-metadata-hash-extension/std",
     "frame-system/std",
     "pallet-aura/std",
     "pallet-balances/std",
@@ -191,6 +198,7 @@ std = [
     "auction/std",
     "estate/std",
     "nft/std",
+    "nft-migration/std",
     "asset-manager/std",
     "continuum/std",
     "currencies/std",
@@ -256,6 +264,7 @@ runtime-benchmarks = [
     "polkadot-primitives/runtime-benchmarks",
     "orml-tokens/runtime-benchmarks",
     "nft/runtime-benchmarks",
+    "nft-migration/runtime-benchmarks",
     "estate/runtime-benchmarks",
     "emergency/runtime-benchmarks",
     "currencies/runtime-benchmarks",

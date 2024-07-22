@@ -16,7 +16,7 @@ use sp_std::collections::btree_map::BTreeMap;
 
 use metaverse_primitive::{
 	Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseMetadata,
-	MetaverseTrait, NFTTrait, NftClassData, NftMetadata, TokenType,
+	MetaverseTrait, NFTTrait, NftAssetData, NftClassData, NftMetadata, TokenType,
 };
 use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, TokenId};
 use sp_runtime::BuildStorage;
@@ -351,16 +351,11 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		CLASS_FUND_ID
 	}
 
-	fn get_nft_detail(_asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
-		let new_data = NftClassData {
+	fn get_nft_detail(_asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftAssetData<Balance>, DispatchError> {
+		let new_data = NftAssetData {
 			deposit: 0,
 			attributes: test_attributes(1),
-			token_type: TokenType::Transferable,
-			collection_type: CollectionType::Collectable,
 			is_locked: false,
-			royalty_fee: Perbill::from_percent(0u32),
-			mint_limit: None,
-			total_minted_tokens: 0u32,
 		};
 		Ok(new_data)
 	}
