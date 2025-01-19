@@ -17,12 +17,12 @@ targets = ['x86_64-unknown-linux-gnu']
 name = "metaverse-node"
 
 [dependencies]
-codec = { package = 'parity-scale-codec', version = '3.1.5' }
+codec = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive"] }
 futures = { workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true, default-features = true }
-clap = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 parking_lot = { workspace = true }
 async-trait = { workspace = true }
 jsonrpsee = { workspace = true }
@@ -54,9 +54,7 @@ sc-consensus-slots = { workspace = true }
 sc-consensus-manual-seal = { workspace = true }
 sp-consensus = { workspace = true }
 sp-authority-discovery = { workspace = true, optional = true }
-sp-finality-grandpa = { workspace = true }
-sc-finality-grandpa = { workspace = true }
-sc-finality-grandpa-rpc = { workspace = true }
+sc-consensus-grandpa = { workspace = true }
 sc-client-api = { workspace = true }
 sc-network = { workspace = true }
 sc-network-common = { workspace = true }
@@ -64,14 +62,14 @@ sc-tracing = { workspace = true }
 sp-runtime = { workspace = true }
 sp-timestamp = { workspace = true }
 sc-sync-state-rpc = { workspace = true }
+sc-network-sync = { workspace = true }
 sp-transaction-pool = { workspace = true, default-features = true }
 sp-transaction-storage-proof = { workspace = true }
 sp-keystore = { workspace = true }
 sp-keyring = { workspace = true }
 sp-session = { workspace = true, default-features = true }
 sp-offchain = { workspace = true, default-features = true }
-#sp-authorship = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-#sc-consensus-uncles = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+
 
 # These dependencies are used for the node template's RPCs
 jsonrpc-core = { workspace = true }
@@ -79,14 +77,14 @@ jsonrpc-pubsub = { workspace = true }
 sc-rpc = { workspace = true }
 sp-api = { workspace = true, default-features = true }
 sc-rpc-api = { workspace = true }
-sp-blockchain =  { workspace = true }
-sp-block-builder =  { workspace = true, default-features = true }
-sc-basic-authorship =  { workspace = true }
+sp-blockchain = { workspace = true }
+sp-block-builder = { workspace = true, default-features = true }
+sc-basic-authorship = { workspace = true }
 substrate-frame-rpc-system = { workspace = true }
 pallet-transaction-payment-rpc = { workspace = true, default-features = true }
 pallet-transaction-payment = { workspace = true, default-features = true }
 pallet-im-online = { workspace = true, optional = true }
-substrate-prometheus-endpoint =  { workspace = true }
+substrate-prometheus-endpoint = { workspace = true }
 
 # These dependencies are used for runtime benchmarking
 frame-benchmarking = { workspace = true, default-features = true }
@@ -108,12 +106,13 @@ cumulus-client-collator = { workspace = true }
 cumulus-client-cli = { workspace = true }
 cumulus-client-network = { workspace = true }
 cumulus-client-service = { workspace = true }
-cumulus-primitives-core = { workspace = true, default-features = true}
+cumulus-primitives-core = { workspace = true, default-features = true }
 cumulus-primitives-parachain-inherent = { workspace = true }
 cumulus-relay-chain-interface = { workspace = true }
 cumulus-relay-chain-minimal-node = { workspace = true }
 cumulus-relay-chain-rpc-interface = { workspace = true }
 cumulus-relay-chain-inprocess-interface = { workspace = true }
+cumulus-test-relay-sproof-builder = { workspace = true }
 
 # Polkadot dependencies
 polkadot-cli = { workspace = true }
@@ -126,14 +125,17 @@ xcm = { workspace = true }
 fp-rpc = { workspace = true, default-features = true, optional = true }
 fp-consensus = { workspace = true, optional = true }
 fp-storage = { workspace = true, optional = true }
-fc-cli = { workspace = true, optional = true }
+fc-storage = { workspace = true }
+fc-api = { workspace = true, optional = true}
+#fc-cli = { workspace = true, optional = true }
 fc-rpc = { workspace = true, optional = true }
 fc-rpc-core = { workspace = true, optional = true }
 fc-consensus = { workspace = true, optional = true }
 fc-mapping-sync = { workspace = true, optional = true }
 fc-db = { workspace = true, optional = true }
-pallet-dynamic-fee = { workspace = true, optional = true }
+pallet-dynamic-fee = { workspace = true, default-features = true, optional = true }
 pallet-ethereum = { workspace = true, default-features = true, optional = true }
+pallet-evm-chain-id = { workspace = true, default-features = true, optional = true }
 
 
 [build-dependencies]
@@ -147,7 +149,7 @@ with-metaverse-runtime = [
     "metaverse-runtime-common",
     "metaverse-runtime",
     "fc-consensus",
-    "fc-cli",
+    "fc-api",
     "fc-db",
     "fc-mapping-sync",
     "fc-rpc",
@@ -157,6 +159,7 @@ with-metaverse-runtime = [
     "fp-storage",
     "pallet-dynamic-fee",
     "pallet-ethereum",
+    "pallet-evm-chain-id",
 ]
 
 with-pioneer-runtime = [

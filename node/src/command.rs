@@ -15,21 +15,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{io::Write, net::SocketAddr, sync::Arc};
+use std::{io::Write, net::SocketAddr};
 
 use codec::Encode;
 use cumulus_client_cli::generate_genesis_block;
-use cumulus_primitives_core::ParaId;
+
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::info;
 use sc_cli::{
-	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result, Role,
+	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result,
 	RuntimeVersion, SharedParams, SubstrateCli,
 };
 use sc_service::config::{BasePath, PrometheusConfig};
 use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
+
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
+
+use cumulus_primitives_core::ParaId;
+
+use frame_benchmarking::benchmarking::HostFunctions;
 
 #[cfg(feature = "with-continuum-runtime")]
 use continuum_runtime::RuntimeApi;
@@ -41,12 +46,11 @@ use pioneer_runtime::RuntimeApi;
 use crate::service::{continuum_partial, ContinuumParachainRuntimeExecutor};
 #[cfg(feature = "with-pioneer-runtime")]
 use crate::service::{pioneer_partial, ParachainRuntimeExecutor};
-use crate::service::{CONTINUUM_RUNTIME_NOT_AVAILABLE, METAVERSE_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
+use crate::service::{CONTINUUM_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
 	service,
-	service::ExecutorDispatch,
 };
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -68,7 +72,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 		#[cfg(feature = "with-continuum-runtime")]
 		"continuum-dev" => Box::new(chain_spec::continuum::development_config()),
 		#[cfg(feature = "with-continuum-runtime")]
-		"continuum" => Box::new(chain_spec::continuum::continuum_genesis_config()),
+		"continuum" => Box::new(chain_spec::continuum::continuum_network_config_json()?),
 		path => Box::new(chain_spec::metaverse::ChainSpec::from_json_file(
 			std::path::PathBuf::from(path),
 		)?),
@@ -103,8 +107,10 @@ impl SubstrateCli for Cli {
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 		load_spec(id)
 	}
+}
 
-	fn native_runtime_version(spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
+impl Cli {
+	fn runtime_version(spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
 		if spec.id().starts_with("metaverse") {
 			#[cfg(feature = "with-metaverse-runtime")]
 			return &metaverse_runtime::VERSION;
@@ -156,10 +162,6 @@ impl SubstrateCli for RelayChainCli {
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 		polkadot_cli::Cli::from_iter([RelayChainCli::executable_name().to_string()].iter()).load_spec(id)
-	}
-
-	fn native_runtime_version(chain_spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		polkadot_cli::Cli::native_runtime_version(chain_spec)
 	}
 }
 
@@ -484,7 +486,7 @@ pub fn run() -> sc_cli::Result<()> {
 							..
 						} = service::new_partial(&config, &cli)?;
 						let aux_revert = Box::new(|client, _, blocks| {
-							sc_finality_grandpa::revert(client, blocks)?;
+							sc_consensus_grandpa::revert(client, blocks)?;
 							Ok(())
 						});
 						Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
@@ -499,8 +501,8 @@ pub fn run() -> sc_cli::Result<()> {
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let spec = load_spec(&params.chain.clone().unwrap_or_default())?;
-			let state_version = Cli::native_runtime_version(&spec).state_version();
+			let spec = load_spec(&params.shared_params.chain.clone().unwrap_or_default())?;
+			let state_version = Cli::runtime_version(&spec).state_version();
 			let block: Block = generate_genesis_block(spec.as_ref(), state_version)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
@@ -522,7 +524,8 @@ pub fn run() -> sc_cli::Result<()> {
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let raw_wasm_blob = extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
+			let raw_wasm_blob =
+				extract_genesis_wasm(&cli.load_spec(&params.shared_params.chain.clone().unwrap_or_default())?)?;
 			let output_buf = if params.raw {
 				raw_wasm_blob
 			} else {
@@ -551,7 +554,7 @@ pub fn run() -> sc_cli::Result<()> {
 								.into());
 						}
 
-						cmd.run::<Block, service::ExecutorDispatch>(config)
+						cmd.run::<Block, HostFunctions>(config)
 					}
 					BenchmarkCmd::Block(cmd) => {
 						let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
@@ -618,9 +621,9 @@ pub fn run() -> sc_cli::Result<()> {
 					let id = ParaId::from(para_id);
 
 					let parachain_account =
-						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
+						AccountIdConversion::<polkadot_primitives::AccountId>::into_account_truncating(&id);
 
-					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
+					let state_version = Cli::runtime_version(&config.chain_spec).state_version();
 					let block: Block = generate_genesis_block(config.chain_spec.as_ref(), state_version)
 						.map_err(|e| format!("{:?}", e))?;
 					let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
@@ -663,9 +666,9 @@ pub fn run() -> sc_cli::Result<()> {
 					let id = ParaId::from(para_id);
 
 					let parachain_account =
-						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
+						AccountIdConversion::<polkadot_primitives::AccountId>::into_account_truncating(&id);
 
-					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
+					let state_version = Cli::runtime_version(&config.chain_spec).state_version();
 					let block: Block = generate_genesis_block(config.chain_spec.as_ref(), state_version)
 						.map_err(|e| format!("{:?}", e))?;
 					let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
@@ -707,12 +710,8 @@ impl DefaultConfigurationValues for RelayChainCli {
 		30334
 	}
 
-	fn rpc_ws_listen_port() -> u16 {
+	fn rpc_listen_port() -> u16 {
 		9945
-	}
-
-	fn rpc_http_listen_port() -> u16 {
-		9934
 	}
 
 	fn prometheus_listen_port() -> u16 {
@@ -744,16 +743,8 @@ impl CliConfiguration<Self> for RelayChainCli {
 			.or_else(|| self.base_path.clone().map(Into::into)))
 	}
 
-	fn rpc_http(&self, default_listen_port: u16) -> Result<Option<SocketAddr>> {
-		self.base.base.rpc_http(default_listen_port)
-	}
-
-	fn rpc_ipc(&self) -> Result<Option<String>> {
-		self.base.base.rpc_ipc()
-	}
-
-	fn rpc_ws(&self, default_listen_port: u16) -> Result<Option<SocketAddr>> {
-		self.base.base.rpc_ws(default_listen_port)
+	fn rpc_addr(&self, default_listen_port: u16) -> Result<Option<SocketAddr>> {
+		self.base.base.rpc_addr(default_listen_port)
 	}
 
 	fn prometheus_config(
@@ -799,8 +790,8 @@ impl CliConfiguration<Self> for RelayChainCli {
 		self.base.base.rpc_methods()
 	}
 
-	fn rpc_ws_max_connections(&self) -> Result<Option<usize>> {
-		self.base.base.rpc_ws_max_connections()
+	fn rpc_max_connections(&self) -> Result<u32> {
+		self.base.base.rpc_max_connections()
 	}
 
 	fn rpc_cors(&self, is_dev: bool) -> Result<Option<Vec<String>>> {

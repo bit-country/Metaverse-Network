@@ -117,7 +117,7 @@ fn create_new_proposal_when_not_enough_funds_does_not_work() {
 			GovernanceModule::propose(
 				origin.clone(),
 				BOB_COUNTRY_ID,
-				600,
+				60000,
 				hash.clone(),
 				PROPOSAL_DESCRIPTION.to_vec()
 			),
@@ -371,7 +371,7 @@ fn vote_work() {
 			0,
 			VOTE_FOR
 		));
-		assert_eq!(Balances::usable_balance(&BOB), 490);
+		assert_eq!(Balances::usable_balance(&BOB), 49990);
 		assert_eq!(
 			last_event(),
 			RuntimeEvent::Governance(crate::Event::VoteRecorded(BOB, 0, true))
@@ -382,7 +382,7 @@ fn vote_work() {
 #[test]
 fn vote_when_not_country_member_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(BOB);
+		let _origin = RuntimeOrigin::signed(BOB);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage_alice(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -500,7 +500,7 @@ fn emergency_cancel_referendum_work() {
 			BOB_COUNTRY_ID,
 			0
 		));
-		assert_eq!(Balances::free_balance(&ALICE), 100000);
+		assert_eq!(Balances::free_balance(&ALICE), 99999);
 		assert_eq!(
 			last_event(),
 			RuntimeEvent::Governance(crate::Event::ReferendumCancelled(0))
@@ -555,6 +555,7 @@ fn referendum_proposal_passes() {
 			hash.clone(),
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
+		//assert_eq!(Balances::free_balance(&BOB), 498);
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
 			RuntimeOrigin::signed(BOB),
@@ -563,7 +564,7 @@ fn referendum_proposal_passes() {
 			VOTE_FOR
 		));
 		run_to_block(117);
-		assert_eq!(Balances::free_balance(&ALICE), 100000);
+		assert_eq!(Balances::free_balance(&ALICE), 99999);
 		assert_eq!(
 			GovernanceModule::referendum_info(BOB_COUNTRY_ID, 0),
 			Some(ReferendumInfo::Finished {
@@ -600,7 +601,7 @@ fn referendum_proposal_is_rejected() {
 			VOTE_AGAINST
 		));
 		run_to_block(117);
-		assert_eq!(Balances::free_balance(&ALICE), 100000);
+		assert_eq!(Balances::free_balance(&ALICE), 99999);
 		assert_eq!(
 			GovernanceModule::referendum_info(BOB_COUNTRY_ID, 0),
 			Some(ReferendumInfo::Finished {
@@ -686,7 +687,7 @@ fn unlocking_balance_after_removing_vote_works() {
 			0,
 			VOTE_FOR
 		));
-		assert_eq!(Balances::usable_balance(&BOB), 490);
+		assert_eq!(Balances::usable_balance(&BOB), 49990);
 		run_to_block(26);
 		assert_ok!(GovernanceModule::try_remove_vote(
 			RuntimeOrigin::signed(BOB),
@@ -694,7 +695,7 @@ fn unlocking_balance_after_removing_vote_works() {
 			BOB_COUNTRY_ID
 		));
 		assert_ok!(GovernanceModule::unlock_balance(RuntimeOrigin::signed(BOB), BOB));
-		assert_eq!(Balances::usable_balance(&BOB), 500);
+		assert_eq!(Balances::usable_balance(&BOB), 49999);
 	});
 }
 
@@ -718,7 +719,7 @@ fn unlocking_balance_after_referendum_is_over_works() {
 			0,
 			VOTE_FOR
 		));
-		assert_eq!(Balances::usable_balance(&BOB), 490);
+		assert_eq!(Balances::usable_balance(&BOB), 49990);
 		run_to_block(30);
 		assert_ok!(GovernanceModule::try_remove_vote(
 			RuntimeOrigin::signed(BOB),
@@ -726,7 +727,7 @@ fn unlocking_balance_after_referendum_is_over_works() {
 			BOB_COUNTRY_ID
 		));
 		assert_ok!(GovernanceModule::unlock_balance(RuntimeOrigin::signed(BOB), BOB));
-		assert_eq!(Balances::usable_balance(&BOB), 500);
+		assert_eq!(Balances::usable_balance(&BOB), 49999);
 	});
 }
 

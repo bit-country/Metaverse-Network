@@ -1,25 +1,26 @@
-use std::collections::BTreeMap;
+use cumulus_client_consensus_common::LevelLimit::Default as LevelLimitDefault;
+use std::default;
 use std::str::FromStr;
 
 use hex_literal::hex;
 use log::info;
+use sc_consensus_grandpa::AuthorityId as GrandpaId;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
-use sp_core::{sr25519, Pair, Public, H160, U256};
-use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::{
-	traits::{IdentifyAccount, Verify},
-	Perbill,
-};
+use sp_core::{sp_std, sr25519, Pair, Public, H160, U256};
+use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_std::default::Default;
+use xcm::latest::Junctions;
+use xcm::v3::{Junction, MultiLocation};
 
 use metaverse_runtime::{
-	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig, GenesisAccount,
-	GenesisConfig, GrandpaConfig, MintingRange, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature,
-	SudoConfig, SystemConfig,
+	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AssetManagerConfig, AuraConfig,
+	BalancesConfig, BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EvmChainIdConfig,
+	EvmMappingConfig, GenesisAccount, GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig,
+	SessionConfig, Signature, SudoConfig, SystemConfig,
 };
-use primitives::Balance;
+use primitives::{AssetMetadata, Balance};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -230,6 +231,7 @@ fn testnet_genesis(
 
 	GenesisConfig {
 		system: SystemConfig {
+			_config: Default::default(),
 			// Add Wasm runtime to storage.
 			code: wasm_binary_unwrap().to_vec(),
 		},
@@ -246,6 +248,7 @@ fn testnet_genesis(
 			authorities: vec![],
 		},
 		grandpa: GrandpaConfig {
+			_config: Default::default(),
 			//            authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
 			authorities: vec![],
 		},
@@ -270,6 +273,7 @@ fn testnet_genesis(
 				.collect::<Vec<_>>(),
 		},
 		estate: EstateConfig {
+			_config: Default::default(),
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {
@@ -277,6 +281,7 @@ fn testnet_genesis(
 			phantom: Default::default(),
 		},
 		evm: EVMConfig {
+			_marker: Default::default(),
 			accounts: {
 				// Prefund the "ALICE" account
 				let mut accounts = std::collections::BTreeMap::new();
@@ -308,11 +313,68 @@ fn testnet_genesis(
 				accounts
 			},
 		},
-		ethereum: EthereumConfig {},
+		ethereum: Default::default(),
 		base_fee: BaseFeeConfig::new(
 			sp_core::U256::from(1_000_000_000u64),
 			sp_runtime::Permill::from_parts(125_000),
 		),
+		evm_chain_id: EvmChainIdConfig {
+			_marker: Default::default(),
+			chain_id: 0x7fa,
+		},
+		evm_mapping: EvmMappingConfig {
+			_marker: Default::default(),
+			is_testnet_genesis: true,
+		},
+		asset_manager: AssetManagerConfig {
+			_config: Default::default(),
+			assets_info: vec![
+				(
+					MultiLocation {
+						parents: 1u8,
+						interior: Junctions::Here,
+					},
+					AssetMetadata {
+						name: "ROC".as_bytes().to_vec(),
+						symbol: "ROC".as_bytes().to_vec(),
+						decimals: 12,
+						minimal_balance: Default::default(),
+					},
+				),
+				(
+					MultiLocation {
+						parents: 1u8,
+						interior: Junctions::X3(
+							Junction::Parachain(1000),
+							Junction::PalletInstance(58),
+							Junction::GeneralIndex(30),
+						),
+					},
+					AssetMetadata {
+						name: "DED".as_bytes().to_vec(),
+						symbol: "DED".as_bytes().to_vec(),
+						decimals: 10,
+						minimal_balance: Default::default(),
+					},
+				),
+				(
+					MultiLocation {
+						parents: 1u8,
+						interior: Junctions::X3(
+							Junction::Parachain(1000),
+							Junction::PalletInstance(58),
+							Junction::GeneralIndex(23),
+						),
+					},
+					AssetMetadata {
+						name: "PINK".as_bytes().to_vec(),
+						symbol: "PINK".as_bytes().to_vec(),
+						decimals: 10,
+						minimal_balance: Default::default(),
+					},
+				),
+			],
+		},
 	}
 }
 

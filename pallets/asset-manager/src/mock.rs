@@ -23,15 +23,13 @@
 
 use crate as asset_manager;
 use frame_support::{
-	assert_ok, construct_runtime, ord_parameter_types,
-	pallet_prelude::GenesisBuild,
-	parameter_types,
+	construct_runtime, ord_parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, Everything},
 };
 use frame_system::EnsureSignedBy;
-use primitives::{AccountId, Balance, FungibleTokenId, TokenSymbol};
-use sp_core::{H160, H256, U256};
-use std::str::FromStr;
+use primitives::{AccountId, Balance};
+
+use sp_runtime::BuildStorage;
 
 ord_parameter_types! {
 	pub const CouncilAccount: AccountId = AccountId::from([1u8; 32]);
@@ -41,14 +39,13 @@ ord_parameter_types! {
 impl frame_system::Config for Runtime {
 	type BaseCallFilter = Everything;
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = u64;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = sp_runtime::testing::H256;
 	type Hashing = sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = sp_runtime::traits::IdentityLookup<Self::AccountId>;
-	type Header = sp_runtime::testing::Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
@@ -75,6 +72,10 @@ impl pallet_balances::Config for Runtime {
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = ();
 	type WeightInfo = ();
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = ConstU32<0>;
+	type MaxFreezes = ConstU32<0>;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -124,8 +125,8 @@ impl ExtBuilder {
 	}
 
 	pub fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {

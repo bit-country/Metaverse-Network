@@ -5,9 +5,9 @@ use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Pal
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::BuildStorage;
+use sp_runtime::{traits::IdentityLookup, Perbill};
 
-use primitives::staking::RoundInfo;
 use primitives::{Amount, ClassId, GroupCollectionId, TokenId};
 
 use crate as metaverse;
@@ -45,14 +45,13 @@ parameter_types! {
 }
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
@@ -84,6 +83,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 
 parameter_types! {
@@ -92,6 +95,8 @@ parameter_types! {
 	pub const MinContribution: Balance = 1;
 	pub const MinStakingAmount: Balance = 100;
 	pub const MaxNumberOfStakersPerMetaverse: u32 = 1;
+	pub StorageDepositFee: Balance = 1;
+
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -126,22 +131,22 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 		Ok(false)
 	}
-	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
+	fn get_nft_group_collection(_nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
 		Ok(ASSET_COLLECTION_ID)
 	}
-	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+	fn is_stackable(_asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
 	fn create_token_class(
 		sender: &AccountId,
-		metadata: NftMetadata,
-		attributes: Attributes,
+		_metadata: NftMetadata,
+		_attributes: Attributes,
 		collection_id: GroupCollectionId,
-		token_type: TokenType,
-		collection_type: CollectionType,
-		royalty_fee: Perbill,
-		mint_limit: Option<u32>,
+		_token_type: TokenType,
+		_collection_type: CollectionType,
+		_royalty_fee: Perbill,
+		_mint_limit: Option<u32>,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
 			ALICE => Ok(100),
@@ -162,8 +167,8 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	fn mint_token(
 		sender: &AccountId,
 		class_id: ClassId,
-		metadata: NftMetadata,
-		attributes: Attributes,
+		_metadata: NftMetadata,
+		_attributes: Attributes,
 	) -> Result<TokenId, DispatchError> {
 		match *sender {
 			ALICE => Ok(1),
@@ -187,26 +192,26 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 	}
 
-	fn transfer_nft(from: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+	fn transfer_nft(_from: &AccountId, _to: &AccountId, _nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
 		Ok(())
 	}
 
-	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError> {
+	fn check_item_on_listing(_class_id: Self::ClassId, _token_id: Self::TokenId) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
-	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+	fn burn_nft(_account: &AccountId, _nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
 		Ok(())
 	}
-	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+	fn is_transferable(_nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
-	fn get_class_fund(class_id: &Self::ClassId) -> AccountId {
+	fn get_class_fund(_class_id: &Self::ClassId) -> AccountId {
 		CLASS_FUND_ID
 	}
 
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
+	fn get_nft_detail(_asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
 		let new_data = NftClassData {
 			deposit: 0,
 			attributes: test_attributes(1),
@@ -220,11 +225,11 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(new_data)
 	}
 
-	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {
+	fn set_lock_collection(_class_id: Self::ClassId, _is_locked: bool) -> sp_runtime::DispatchResult {
 		todo!()
 	}
 
-	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
+	fn set_lock_nft(_token_id: (Self::ClassId, Self::TokenId), _is_locked: bool) -> sp_runtime::DispatchResult {
 		todo!()
 	}
 
@@ -242,20 +247,20 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(new_data)
 	}
 
-	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
+	fn get_total_issuance(_class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
 		Ok(10u64)
 	}
 
-	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError> {
+	fn get_asset_owner(_asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError> {
 		Ok(ALICE)
 	}
 
 	fn mint_token_with_id(
 		sender: &AccountId,
 		class_id: Self::ClassId,
-		token_id: Self::TokenId,
-		metadata: NftMetadata,
-		attributes: Attributes,
+		_token_id: Self::TokenId,
+		_metadata: NftMetadata,
+		_attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError> {
 		match *sender {
 			ALICE => Ok(1),
@@ -279,31 +284,31 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 	}
 
-	fn get_free_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
+	fn get_free_stackable_nft_balance(_who: &AccountId, _asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
 		1000
 	}
 
 	fn reserve_stackable_nft_balance(
-		who: &AccountId,
-		asset_id: &(Self::ClassId, Self::TokenId),
-		amount: Balance,
+		_who: &AccountId,
+		_asset_id: &(Self::ClassId, Self::TokenId),
+		_amount: Balance,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn unreserve_stackable_nft_balance(
-		who: &AccountId,
-		asset_id: &(Self::ClassId, Self::TokenId),
-		amount: Balance,
+		_who: &AccountId,
+		_asset_id: &(Self::ClassId, Self::TokenId),
+		_amount: Balance,
 	) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
 
 	fn transfer_stackable_nft(
-		sender: &AccountId,
-		to: &AccountId,
-		nft: &(Self::ClassId, Self::TokenId),
-		amount: Balance,
+		_sender: &AccountId,
+		_to: &AccountId,
+		_nft: &(Self::ClassId, Self::TokenId),
+		_amount: Balance,
 	) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
@@ -318,6 +323,7 @@ impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
+	type NetworkTreasury = TreasuryModuleAccount;
 	type MetaverseTreasury = MetaverseFundPalletId;
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
@@ -327,6 +333,7 @@ impl Config for Runtime {
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type WeightInfo = ();
 	type NFTHandler = MockNFTHandler;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_type_with_key! {
@@ -380,7 +387,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -398,8 +405,8 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {

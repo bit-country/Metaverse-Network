@@ -19,19 +19,21 @@
 
 extern crate alloc;
 
+use fp_evm::{ExitError, ExitRevert, ExitSucceed, PrecompileFailure, PrecompileHandle, PrecompileOutput};
+
+use crate::alloc::borrow::ToOwned;
+
 pub mod costs;
 pub mod handle;
 pub mod logs;
 pub mod modifier;
 pub mod precompile_set;
 pub mod substrate;
+#[cfg(feature = "testing")]
 pub mod testing;
 
 #[cfg(test)]
 mod tests;
-
-use crate::alloc::borrow::ToOwned;
-use fp_evm::{ExitError, ExitRevert, ExitSucceed, PrecompileFailure, PrecompileHandle, PrecompileOutput};
 
 pub mod data;
 

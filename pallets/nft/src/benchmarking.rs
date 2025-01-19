@@ -19,22 +19,30 @@
 //! Benchmarks for the nft module.
 
 #![cfg(feature = "runtime-benchmarks")]
-use crate::Call;
-#[allow(unused)]
-use crate::Pallet as NftModule;
-pub use crate::*;
+
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::Get;
 use frame_system::RawOrigin;
 use orml_traits::BasicCurrencyExtended;
-use primitive_traits::CollectionType;
-use primitives::{AssetId, Balance, ClassId};
 //use core_primitives::NFTTrait;
 use scale_info::Type;
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_io::crypto::{sr25519_generate, sr25519_sign};
 use sp_runtime::Perbill;
+use sp_runtime::{
+	traits::{AccountIdConversion, ConvertInto, IdentifyAccount, StaticLookup, UniqueSaturatedInto},
+	AccountId32, MultiSignature, MultiSigner,
+};
+use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use sp_std::vec;
+
+use primitive_traits::CollectionType;
+use primitives::{AssetId, Balance, ClassId};
+
+use crate::Call;
+#[allow(unused)]
+use crate::Pallet as NftModule;
+pub use crate::*;
 
 pub struct Pallet<T: Config>(crate::Pallet<T>);
 
@@ -64,6 +72,11 @@ fn test_attributes(x: u8) -> Attributes {
 }
 
 benchmarks! {
+	where_clause {
+		where
+			T::OffchainSignature: From<MultiSignature>,
+			T::AccountId: From<AccountId32>,
+	}
 
 	// create NFT group
 	create_group{
@@ -158,6 +171,32 @@ benchmarks! {
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32), None);
 	}: _(RawOrigin::Root, 0u32.into(), 0u32.into(), 1u32.into())
+	mint_pre_signed{
+		let caller_public = sr25519_generate(0.into(), None);
+		let caller = MultiSigner::Sr25519(caller_public).into_account().into();
+		let initial_balance = dollar(1000);
+
+		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32),None);
+
+		let mint_data = PreSignedMint {
+			class_id: 0u32.into(),
+			token_id: None,
+			attributes: test_attributes(1),
+			metadata: vec![1],
+			only_account: None,
+			mint_price: None,
+			expired: 100u32.into()
+		};
+
+		let message = Encode::encode(&mint_data);
+		let signature = MultiSignature::Sr25519(sr25519_sign(0.into(), &caller_public, &message).unwrap());
+
+		let target = funded_account::<T>("target", 1);
+
+	}: _(RawOrigin::Signed(target), Box::new(mint_data), signature.into(), caller)
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

@@ -11,7 +11,7 @@ use sp_core::{H160, U256};
 use sp_std::prelude::*;
 
 pub use pallet::*;
-use primitives::{Balance, FungibleTokenId};
+use primitives::FungibleTokenId;
 
 pub type ResourceId = H160;
 pub type ChainId = u8;
@@ -29,12 +29,12 @@ pub mod pallet {
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
-	use sp_arithmetic::traits::{CheckedMul, Saturating, Zero};
-	use sp_runtime::traits::{AccountIdConversion, CheckedDiv};
-	use sp_runtime::{ArithmeticError, ModuleError};
+	use sp_arithmetic::traits::Saturating;
+	use sp_runtime::traits::AccountIdConversion;
+	use sp_runtime::ModuleError;
 
 	use core_primitives::NFTTrait;
-	use primitives::evm::CurrencyIdType::FungibleToken;
+
 	use primitives::{Attributes, ClassId, NftMetadata, TokenId};
 
 	use super::*;
@@ -47,7 +47,7 @@ pub mod pallet {
 		type BridgeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// The currency mechanism.
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 		type MultiCurrency: MultiCurrencyExtended<
 			Self::AccountId,
 			CurrencyId = FungibleTokenId,
@@ -161,7 +161,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		pub fn oracle_change_fee(
 			origin: OriginFor<T>,
 			min_fee: BalanceOf<T>,
@@ -179,7 +179,7 @@ pub mod pallet {
 
 		/// Transfers some amount of the native token to some recipient on a (whitelisted)
 		/// destination chain.
-		#[pallet::weight(Weight::from_ref_time(195_000)  + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0)  + T::DbWeight::get().writes(1))]
 		pub fn bridge_out_fungible(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
@@ -192,18 +192,17 @@ pub mod pallet {
 
 			let bridge_id = T::PalletId::get().into_account_truncating();
 			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
-			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
+			let (min_fee, _fee_scale) = Self::bridge_fee(chain_id);
 
-			let fee_estimated = amount.saturating_mul(fee_scale.into());
+			let fee_estimated = currency_id.1 * amount;
 			let fee = if fee_estimated > min_fee {
 				fee_estimated
 			} else {
 				min_fee
 			};
 
-			let mut actual_fee = Zero::zero();
+			let actual_fee = fee;
 			if currency_id.0 == FungibleTokenId::NativeToken(0) {
-				actual_fee = fee;
 				T::Currency::transfer(
 					&source,
 					&bridge_id,
@@ -211,8 +210,6 @@ pub mod pallet {
 					ExistenceRequirement::AllowDeath,
 				)?;
 			} else {
-				actual_fee = currency_id.1 * fee;
-
 				// Transfer the fee as native token first
 				T::Currency::transfer(&source, &bridge_id, actual_fee.into(), ExistenceRequirement::AllowDeath)?;
 				// Handle the multi currency token transfer
@@ -230,7 +227,7 @@ pub mod pallet {
 		}
 
 		/// Executes a simple currency transfer from user account to bridge account
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		pub fn bridge_in_fungible(
 			origin: OriginFor<T>,
 			from: Vec<u8>,
@@ -266,7 +263,7 @@ pub mod pallet {
 		//
 
 		/// Execute NFT minting using bridge account as the source
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		pub fn bridge_in_nft(
 			origin: OriginFor<T>,
 			from: Vec<u8>,
@@ -300,7 +297,11 @@ pub mod pallet {
 					Ok(())
 				}
 				Err(err) => match err {
-					DispatchError::Module(ModuleError { index, error, message }) => {
+					DispatchError::Module(ModuleError {
+						index: _,
+						error: _,
+						message,
+					}) => {
 						if message == Some("AssetInfoNotFound") {
 							if let Ok(_mint_succeeded) =
 								T::NFTHandler::mint_token_with_id(&to, class_id, token_id, metadata, Attributes::new())
@@ -322,7 +323,7 @@ pub mod pallet {
 		}
 
 		/// Executes a simple currency transfer using the bridge account as the source
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		pub fn bridge_out_nft(
 			origin: OriginFor<T>,
 			to: Vec<u8>,
@@ -335,7 +336,7 @@ pub mod pallet {
 			let bridge_id = T::PalletId::get().into_account_truncating();
 
 			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
-			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
+			let (min_fee, _fee_scale) = Self::bridge_fee(chain_id);
 
 			T::Currency::transfer(&source, &bridge_id, min_fee.into(), ExistenceRequirement::AllowDeath)?;
 
@@ -353,7 +354,7 @@ pub mod pallet {
 		}
 
 		/// Register new resource token id for bridge
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn register_new_token_id(
 			origin: OriginFor<T>,
@@ -373,7 +374,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(Weight::from_ref_time(195_000)  + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0)  + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn remove_resource_token_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
@@ -386,7 +387,7 @@ pub mod pallet {
 		}
 
 		/// Register new resource token id for bridge
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn register_new_nft_resource_id(
 			origin: OriginFor<T>,
@@ -405,7 +406,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn remove_resource_nft_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
@@ -420,7 +421,7 @@ pub mod pallet {
 		}
 
 		/// Add new Bridge origin to execute bridge only request
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		pub fn add_bridge_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
 			ensure!(!Self::is_bridge_origin(&who), Error::<T>::BridgeOriginAlreadyExist);
@@ -432,7 +433,7 @@ pub mod pallet {
 		}
 
 		/// Remove Bridge origin that used to execute bridge only request
-		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(195_000, 0) + T::DbWeight::get().writes(1))]
 		pub fn remove_bridge_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
 			ensure!(Self::is_bridge_origin(&who), Error::<T>::BridgeOriginDoesNotExist);

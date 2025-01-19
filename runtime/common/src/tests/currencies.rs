@@ -1,5 +1,3 @@
-use asset_manager::BalanceOf;
-use frame_support::assert_noop;
 use hex_literal::hex;
 use sp_core::{H160, U256};
 use sp_runtime::traits::Zero;
@@ -210,27 +208,30 @@ fn total_supply_of_native_currencies_works() {
 
 #[test]
 fn balance_of_foreign_currencies_works() {
-	ExtBuilder::default().build().execute_with(|| {
-		Currencies::update_balance(
-			RuntimeOrigin::root(),
-			alice_account_id(),
-			FungibleTokenId::MiningResource(0),
-			100000,
-		);
-		EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 10000)])
+		.build()
+		.execute_with(|| {
+			Currencies::update_balance(
+				RuntimeOrigin::root(),
+				alice_account_id(),
+				FungibleTokenId::MiningResource(0),
+				100000,
+			);
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 
-		precompiles()
-			.prepare_test(
-				alice_evm_addr(),
-				bit_evm_address(),
-				EvmDataWriter::new_with_selector(Action::BalanceOf)
-					.write(Address::from(alice_evm_addr()))
-					.build(),
-			)
-			.expect_cost(0)
-			.expect_no_logs()
-			.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
-	});
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					bit_evm_address(),
+					EvmDataWriter::new_with_selector(Action::BalanceOf)
+						.write(Address::from(alice_evm_addr()))
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
+		});
 }
 
 #[test]
@@ -239,7 +240,7 @@ fn balance_of_native_currencies_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
+			let _evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
 			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 			precompiles()
 				.prepare_test(
@@ -251,7 +252,7 @@ fn balance_of_native_currencies_works() {
 				)
 				.expect_cost(0)
 				.expect_no_logs()
-				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
+				.execute_returns(EvmDataWriter::new().write(U256::from(99999u64)).build());
 		});
 }
 
@@ -334,11 +335,11 @@ fn transfer_native_currencies_works() {
 
 			assert_eq!(
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&bob_account_id()),
-				151000
+				150999
 			);
 			assert_eq!(
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&alice_account_id()),
-				99000
+				98999
 			);
 		});
 }

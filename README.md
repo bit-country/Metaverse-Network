@@ -1,15 +1,7 @@
-<p align="center">
-  <img src="https://github.com/bit-country/Metaverse-Network/blob/master/node/res/bm-logo.png?raw=true" width="200">
-</p>
-
-<p align="center">  
-  <img src="https://raw.githubusercontent.com/w3f/General-Grants-Program/master/src/badge_black.svg" width="530">
-</p>
-
 <div align="center">
-<h1>[Bit.Country] Metaverse.Network</h1>
+<h1>MNET (Metaverse.Network) by BitCountry team</h1>
 
-## Start your own metaverse. An Ethereum-compatible Network for Metaverses & Games
+## An Ethereum-compatible Blockchain Network Built using Substrate
 
 [![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.dev/)
 [![Twitter URL](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2Fbitdotcountry)](https://twitter.com/bitdotcountry)
@@ -30,18 +22,9 @@ Development Note: It is still a WIP.
 
 # 1. Introduction
 
-Metaverse Network is an EVM-enabled blockchain network for user-created metaverses and games.
-
-Everyone can start their own metaverse for their people with the 3D world, NFTs, play-to-earn & build communities to
-earn, and takes community engagement to a new dimension on web3.0.
+MNET (Metaverse.Network), featuring a seamlessly integrated enriched social layer, stands as an interesting blockchain ecosystem that extends support for both EVM (Ethereum Virtual Machine) and WASM (WebAssembly) smart contracts. This framework empowers developers to harness the network's capabilities in crafting decentralized applications (dApps) with unparalleled versatility and functionality.
 
 # 2. Build
-
-Install Rust and Wasm build environment:
-
-```bash
-make init
-```
 
 Build Wasm and native code:
 
@@ -49,7 +32,7 @@ Build Wasm and native code:
 make build
 ```
 
-# 3. Run
+# 2. Run
 
 ### Start a Dev Metaverse Network Chain
 
@@ -105,3 +88,8 @@ cargo run -- \
   --telemetry-url 'wss://telemetry.polkadot.io/submit/ 0' \
   --validator
 ```
+
+<p align="center">  
+  <img src="https://raw.githubusercontent.com/w3f/General-Grants-Program/master/src/badge_black.svg" width="530">
+</p>
+

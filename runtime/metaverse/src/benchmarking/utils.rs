@@ -67,9 +67,7 @@ pub fn create_nft_group() {
 	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
 }
 
-pub fn issue_new_undeployed_land_block(n: u32) -> Result<bool, &'static str> {
-	let caller: AccountId = account("caller", 0, SEED);
-	set_balance(FungibleTokenId::NativeToken(0), &caller, 10000);
+pub fn issue_new_undeployed_land_block(caller: AccountId, n: u32) -> Result<bool, &'static str> {
 	assert_ok!(Estate::issue_undeployed_land_blocks(
 		RawOrigin::Root.into(),
 		caller,

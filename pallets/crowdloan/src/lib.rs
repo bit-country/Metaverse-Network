@@ -18,26 +18,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
-use frame_support::traits::{Currency, ExistenceRequirement, VestingSchedule};
-use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
+
+use frame_support::{dispatch::DispatchResult, ensure, traits::Get};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use pallet_vesting::{Pallet as VestingModule, VestingInfo};
-use scale_info::TypeInfo;
-use sp_runtime::traits::Convert;
-use sp_runtime::{
-	traits::{AccountIdConversion, One, Saturating, Zero},
-	DispatchError,
-};
-use sp_std::{convert::TryInto, vec::Vec};
+use pallet_vesting::Pallet as VestingModule;
 
-use auction_manager::{Auction, CheckAuctionItemHandler};
-use core_primitives::*;
+use sp_runtime::traits::Saturating;
+use sp_std::convert::TryInto;
+
 pub use pallet::*;
-use primitives::{
-	estate::Estate, Balance, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
-	UndeployedLandBlockType,
-};
+
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -53,11 +44,9 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::{Currency, ExistenceRequirement, Imbalance, ReservableCurrency, VestingSchedule};
+	use frame_support::traits::{Currency, ExistenceRequirement, VestingSchedule};
 	use pallet_vesting::VestingInfo;
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Convert, ConvertInto, StaticLookup, Zero};
-
-	use primitives::UndeployedLandBlockId;
+	use sp_runtime::traits::{Convert, StaticLookup};
 
 	use super::*;
 
@@ -74,7 +63,7 @@ pub mod pallet {
 		/// Vesting schedule
 		type VestingSchedule: VestingSchedule<Self::AccountId>;
 		/// Convert block number to balance
-		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
+		type BlockNumberToBalance: Convert<BlockNumberFor<Self>, BalanceOf<Self>>;
 		/// Weight implementation
 		type WeightInfo: WeightInfo;
 	}
@@ -94,7 +83,7 @@ pub mod pallet {
 		/// Beneficial Account Id, Amount
 		TokenTransferred(T::AccountId, BalanceOf<T>),
 		/// Beneficial AccountId, Amount
-		VestedTokenTransferred(T::AccountId, VestingInfo<BalanceOf<T>, T::BlockNumber>),
+		VestedTokenTransferred(T::AccountId, VestingInfo<BalanceOf<T>, BlockNumberFor<T>>),
 		/// AccountId, Schedule Index
 		RemovedRewardVestingSchedule(T::AccountId, u32),
 		/// Distributor AccountId
@@ -137,16 +126,11 @@ pub mod pallet {
 		pub fn transfer_vested_reward(
 			origin: OriginFor<T>,
 			to: <T::Lookup as StaticLookup>::Source,
-			schedule: VestingInfo<VestingBalanceOf<T>, T::BlockNumber>,
+			schedule: VestingInfo<VestingBalanceOf<T>, BlockNumberFor<T>>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin.clone())?;
 
 			ensure!(Self::is_accepted_origin(&who), Error::<T>::NoPermission);
-			let target = T::Lookup::lookup(to.clone())?;
-			// Get existing vesting schedule
-			let vesting_info = T::VestingSchedule::vesting_balance(&target);
-			// Ensure user doesn't have any vested reward
-			ensure!(vesting_info == None, Error::<T>::UserAlreadyGotExistingVestingInfo);
 
 			VestingModule::<T>::vested_transfer(origin, to, schedule)?;
 

@@ -2,21 +2,23 @@
 name = "pioneer-runtime"
 description = "Pioneer Runtime"
 version = "0.0.7"
-edition = '2021'
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-substrate-wasm-builder = { workspace = true, default-features = true }
+substrate-wasm-builder = { workspace = true }
 
 [dependencies]
-codec = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
+codec = { workspace = true, package = "parity-scale-codec" }
 log = { workspace = true }
-serde = { workspace = true, optional = true, features = ['derive'] }
+serde = { workspace = true, optional = true, features = ["derive"] }
+serde_json = { workspace = true, default-features = false, features = ["alloc"] }
 scale-info = { workspace = true }
 smallvec = { workspace = true }
 hex-literal = { workspace = true }
 getrandom = { workspace = true }
+curve25519-dalek = { workspace = true }
 
 # external crates - orml packages
 orml-currencies = { workspace = true }
@@ -29,14 +31,14 @@ orml-xcm = { workspace = true }
 orml-xcm-support = { workspace = true }
 orml-oracle = { workspace = true }
 # Metaverse Dependencies
-primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
-metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', default-features = false }
-currencies = { package = 'currencies', path = '../../pallets/currencies', version = '2.0.0-rc6', default-features = false }
-nft = { package = 'pallet-nft', path = '../../pallets/nft', version = '2.0.0-rc6', default-features = false }
-auction = { package = 'pallet-auction', path = '../../pallets/auction', version = '2.0.0-rc6', default-features = false }
-continuum = { package = 'pallet-continuum', path = '../../pallets/continuum', version = '0.0.1', default-features = false }
-mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '2.0.0-rc6', default-features = false }
-estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
+currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
+nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
+auction = { package = "pallet-auction", path = "../../pallets/auction", version = "2.0.0-rc6", default-features = false }
+continuum = { package = "pallet-continuum", path = "../../pallets/continuum", version = "0.0.1", default-features = false }
+mining = { package = "pallet-mining", path = "../../pallets/mining", version = "2.0.0-rc6", default-features = false }
+estate = { package = "pallet-estate", path = "../../pallets/estate", default-features = false }
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
 economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
@@ -58,6 +60,7 @@ sp-session = { workspace = true }
 sp-std = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
+sp-weights = { workspace = true }
 
 ## Substrate FRAME Dependencies
 frame-executive = { workspace = true }
@@ -72,7 +75,7 @@ pallet-aura = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-collective = { workspace = true }
 pallet-democracy = { workspace = true }
-pallet-randomness-collective-flip = { workspace = true }
+pallet-insecure-randomness-collective-flip = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-timestamp = { workspace = true }
@@ -114,27 +117,32 @@ polkadot-runtime-common = { workspace = true }
 metaverse-runtime-common = { path = "../common", default-features = false }
 
 [features]
-default = ['std']
+default = ["std"]
 runtime-benchmarks = [
-    'frame-benchmarking',
-    'sp-runtime/runtime-benchmarks',
+    "frame-benchmarking",
+    "sp-runtime/runtime-benchmarks",
     "xcm-builder/runtime-benchmarks",
-    'frame-support/runtime-benchmarks',
-    'frame-system-benchmarking/runtime-benchmarks',
-    'frame-system/runtime-benchmarks',
-    'pallet-balances/runtime-benchmarks',
+    "frame-support/runtime-benchmarks",
+    "frame-system-benchmarking/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
     "pallet-collator-selection/runtime-benchmarks",
-    'pallet-timestamp/runtime-benchmarks',
+    "pallet-timestamp/runtime-benchmarks",
     "pallet-xcm/runtime-benchmarks",
     "pallet-collective/runtime-benchmarks",
     "cumulus-pallet-session-benchmarking/runtime-benchmarks",
 ]
 
 std = [
+    "frame-benchmarking/std",
+    "frame-system-benchmarking/std",
+    "cumulus-pallet-session-benchmarking/std",
     "codec/std",
     "scale-info/std",
+    "serde_json/std",
     "serde",
     "log/std",
+    "getrandom/std",
     "sp-api/std",
     "sp-std/std",
     "sp-io/std",
@@ -143,18 +151,23 @@ std = [
     "sp-version/std",
     "sp-offchain/std",
     "sp-session/std",
+    "sp-weights/std",
     "sp-block-builder/std",
     "sp-transaction-pool/std",
     "sp-inherents/std",
     "frame-support/std",
     "frame-executive/std",
     "frame-system/std",
+    "frame-system-rpc-runtime-api/std",
     "pallet-balances/std",
-    "pallet-randomness-collective-flip/std",
+    "pallet-insecure-randomness-collective-flip/std",
     "pallet-timestamp/std",
     "pallet-sudo/std",
+    "pallet-grandpa/std",
     "pallet-transaction-payment/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-collective/std",
+    "pallet-democracy/std",
     "pallet-session/std",
     "pallet-scheduler/std",
     "pallet-vesting/std",
@@ -163,10 +176,13 @@ std = [
     "pallet-membership/std",
     "pallet-utility/std",
     "pallet-proxy/std",
+    "pallet-bounties/std",
+    "pallet-treasury/std",
     "parachain-info/std",
     "cumulus-pallet-aura-ext/std",
     "cumulus-pallet-parachain-system/std",
     "cumulus-pallet-xcmp-queue/std",
+    "cumulus-pallet-dmp-queue/std",
     "cumulus-pallet-xcm/std",
     "cumulus-primitives-core/std",
     "cumulus-primitives-timestamp/std",
@@ -176,25 +192,34 @@ std = [
     "xcm-executor/std",
     "pallet-aura/std",
     "sp-consensus-aura/std",
-    'orml-tokens/std',
-    'orml-nft/std',
+    "orml-tokens/std",
+    "orml-nft/std",
     "orml-oracle/std",
     "orml-xtokens/std",
-    'primitives/std',
-    'metaverse/std',
-    'currencies/std',
-    'nft/std',
-    'auction/std',
-    'continuum/std',
-    'mining/std',
-    'estate/std',
-    'crowdloan/std',
+    "orml-traits/std",
+    "orml-currencies/std",
+    "orml-xcm/std",
+    "orml-xcm-support/std",
+    "orml-unknown-tokens/std",
+    "primitives/std",
+    "core-primitives/std",
+    "metaverse/std",
+    "currencies/std",
+    "nft/std",
+    "auction/std",
+    "continuum/std",
+    "mining/std",
+    "estate/std",
+    "crowdloan/std",
     "economy/std",
     "emergency/std",
     "asset-manager/std",
     "reward/std",
-    'pallet-collator-selection/std',
+    "pallet-collator-selection/std",
     "pallet-preimage/std",
     "metaverse-runtime-common/std",
     "modules-bridge/std"
+    "polkadot-runtime-common/std",
+    "polkadot-parachain/std",
+    "polkadot-primitives/std"
 ]

@@ -19,33 +19,25 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::traits::{Currency, Get, WithdrawReasons};
+use frame_support::traits::{Currency, Get};
 use frame_support::PalletId;
 use frame_support::{
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
-	transactional, Parameter,
+	traits::ExistenceRequirement,
 };
 use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
-use orml_traits::{
-	arithmetic::{Signed, SimpleArithmetic},
-	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
-};
+use orml_traits::{BasicCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended};
 use scale_info::TypeInfo;
-use sp_runtime::{
-	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
-	DispatchError, Perbill,
-};
+use sp_runtime::traits::{AccountIdConversion, Zero};
 use sp_std::vec::Vec;
 
-use auction_manager::SwapManager;
 use core_primitives::*;
 pub use pallet::*;
 use primitives::staking::RoundInfo;
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use primitives::{Balance, FungibleTokenId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -79,16 +71,15 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::sp_runtime::traits::Saturating;
-	use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
-	use frame_support::traits::OnUnbalanced;
-	use pallet_balances::NegativeImbalance;
+
+	use frame_support::sp_runtime::SaturatedConversion;
+
 	use sp_runtime::Perbill;
 	use sp_std::convert::TryInto;
 
 	use primitives::estate::Estate;
 	use primitives::staking::{MetaverseStakingTrait, RoundInfo};
-	use primitives::{FungibleTokenId, RoundIndex, TokenId, VestingSchedule};
+	use primitives::{FungibleTokenId, RoundIndex, VestingSchedule};
 
 	use crate::mining::round_issuance_range;
 
@@ -99,14 +90,17 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
+	pub(crate) type VestingScheduleOf<T> = VestingSchedule<BlockNumberFor<T>, Balance>;
 	pub type ScheduledItem<T> = (
 		<T as frame_system::Config>::AccountId,
-		<T as frame_system::Config>::BlockNumber,
-		<T as frame_system::Config>::BlockNumber,
+		BlockNumberFor<T>,
+		BlockNumberFor<T>,
 		u32,
 		Balance,
 	);
+
+	pub(crate) type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -121,6 +115,19 @@ pub mod pallet {
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
 		// Mining staking reward for treasury
 		type TreasuryStakingReward: Get<Perbill>;
+
+		/// The network treasury account
+		#[pallet::constant]
+		type NetworkTreasuryAccount: Get<Self::AccountId>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
+		/// The Currency for managing storage deposits.
+		type Currency: Currency<Self::AccountId>;
+
 		// Weight implementation for mining extrinsics
 		type WeightInfo: WeightInfo;
 	}
@@ -133,7 +140,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn round)]
 	/// Current round index and next round scheduled transition
-	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<BlockNumberFor<T>>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn mining_ratio_config)]
@@ -169,17 +176,17 @@ pub mod pallet {
 		/// New round
 		NewMiningRound(RoundIndex, MiningRange<Balance>),
 		/// Round length update
-		RoundLengthUpdated(T::BlockNumber),
+		RoundLengthUpdated(BlockNumberFor<T>),
 		/// New mining config update
-		MiningConfigUpdated(T::BlockNumber, MiningResourceRateInfo),
+		MiningConfigUpdated(BlockNumberFor<T>, MiningResourceRateInfo),
 		/// Minting new Mining resource to [who] [amount]
 		MiningResourceMintedTo(T::AccountId, Balance),
 		/// Burn new Mining resource of [who] [amount]
 		MiningResourceBurnFrom(T::AccountId, Balance),
 		/// Temporary pause mining round rotation
-		MiningRoundPaused(T::BlockNumber, RoundIndex),
+		MiningRoundPaused(BlockNumberFor<T>, RoundIndex),
 		/// Mining round rotation is unpaused
-		MiningRoundUnPaused(T::BlockNumber, RoundIndex),
+		MiningRoundUnPaused(BlockNumberFor<T>, RoundIndex),
 	}
 
 	#[pallet::error]
@@ -268,7 +275,7 @@ pub mod pallet {
 
 		/// Update round length
 		#[pallet::weight(< T as pallet::Config >::WeightInfo::update_round_length())]
-		pub fn update_round_length(origin: OriginFor<T>, length: T::BlockNumber) -> DispatchResultWithPostInfo {
+		pub fn update_round_length(origin: OriginFor<T>, length: BlockNumberFor<T>) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			let mut current_round = Round::<T>::get();
@@ -333,8 +340,8 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_initialize(n: T::BlockNumber) -> Weight {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
 			let mut round = <Round<T>>::get();
 			let is_mining_paused = MiningPaused::<T>::get();
 			if round.should_update(n) && !is_mining_paused {
@@ -348,9 +355,9 @@ pub mod pallet {
 				Round::<T>::put(round);
 				CurrentMiningResourceAllocation::<T>::put(allocation_range);
 				Self::deposit_event(Event::NewMiningRound(round.current, allocation_range));
-				Weight::from_ref_time(0)
+				Weight::from_parts(0, 0)
 			} else {
-				Weight::from_ref_time(0)
+				Weight::from_parts(0, 0)
 			}
 		}
 	}
@@ -448,7 +455,13 @@ impl<T: Config> Pallet<T> {
 
 	fn do_add_minting_origin(who: T::AccountId) -> DispatchResult {
 		ensure!(!Self::is_mining_origin(&who), Error::<T>::OriginsAlreadyExist);
-
+		// Transfer storage deposit fee
+		<T as Config>::Currency::transfer(
+			&who,
+			&T::NetworkTreasuryAccount::get(),
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
 		MintingOrigins::<T>::insert(who.clone(), ());
 		Self::deposit_event(Event::AddNewMiningOrigin(who));
 		Ok(())
@@ -456,6 +469,13 @@ impl<T: Config> Pallet<T> {
 
 	fn do_remove_minting_origin(who: T::AccountId) -> DispatchResult {
 		ensure!(Self::is_mining_origin(&who), Error::<T>::OriginsIsNotExist);
+		// Transfer back storage deposit fee
+		<T as Config>::Currency::transfer(
+			&T::NetworkTreasuryAccount::get(),
+			&who,
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
 
 		MintingOrigins::<T>::remove(who.clone());
 		Self::deposit_event(Event::RemoveMiningOrigin(who));
@@ -472,8 +492,8 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-impl<T: Config> RoundTrait<T::BlockNumber> for Pallet<T> {
-	fn get_current_round_info() -> RoundInfo<T::BlockNumber> {
+impl<T: Config> RoundTrait<BlockNumberFor<T>> for Pallet<T> {
+	fn get_current_round_info() -> RoundInfo<BlockNumberFor<T>> {
 		Round::<T>::get()
 	}
 }

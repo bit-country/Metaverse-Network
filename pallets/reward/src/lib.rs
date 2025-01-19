@@ -17,33 +17,31 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, HasCompact};
+use codec::Encode;
 use frame_support::storage::{child, ChildTriePrefixIterator};
-use frame_support::traits::{LockIdentifier, WithdrawReasons};
+
 use frame_support::{
-	ensure, log,
+	ensure,
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
+use orml_traits::{DataProvider, MultiCurrency, MultiReservableCurrency};
 use sp_core::Encode as SPEncode;
 use sp_io::hashing::keccak_256;
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash as Hasher, Saturating};
+use sp_runtime::traits::Hash as Hasher;
 use sp_runtime::{
-	traits::{AccountIdConversion, One, Zero},
-	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
+	traits::{AccountIdConversion, Zero},
+	DispatchError, Perbill, SaturatedConversion,
 };
-use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
+use sp_std::{prelude::*, vec::Vec};
 
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{
-	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, Hash, RewardType, TrieIndex,
-};
-use primitives::{Balance, ClassId, FungibleTokenId, NftId};
+use primitives::{Balance, ClassId, FungibleTokenId};
+use primitives::{CampaignId, CampaignInfo, CampaignInfoV2, Hash, RewardType, TrieIndex};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -59,13 +57,12 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::tokens::currency;
+
 	use frame_support::traits::ExistenceRequirement::AllowDeath;
-	use orml_traits::{rewards, MultiCurrencyExtended};
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
+
+	use sp_runtime::traits::{CheckedAdd, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::staking::RoundInfo;
 	use primitives::{CampaignId, CampaignInfo, ClassId, NftId};
 
 	use super::*;
@@ -85,7 +82,7 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The currency type
-		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+		type Currency: LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>
 			+ ReservableCurrency<Self::AccountId>;
 
 		/// Multi-fungible token currency
@@ -114,11 +111,11 @@ pub mod pallet {
 
 		/// The minimum amount of blocks during which campaign rewards can be claimed.
 		#[pallet::constant]
-		type MinimumCampaignDuration: Get<Self::BlockNumber>;
+		type MinimumCampaignDuration: Get<BlockNumberFor<Self>>;
 
 		/// The minimum amount of blocks during which campaign rewards can be claimed.
 		#[pallet::constant]
-		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
+		type MinimumCampaignCoolingOffPeriod: Get<BlockNumberFor<Self>>;
 
 		/// The maximum amount of leaf nodes that could be passed when claiming reward
 		#[pallet::constant]
@@ -133,6 +130,11 @@ pub mod pallet {
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
 		/// Weight info
 		type WeightInfo: WeightInfo;
 	}
@@ -144,7 +146,7 @@ pub mod pallet {
 		_,
 		Twox64Concat,
 		CampaignId,
-		CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId>,
+		CampaignInfo<T::AccountId, BalanceOf<T>, BlockNumberFor<T>, FungibleTokenId, ClassId, TokenId>,
 	>;
 
 	/// List of merkle roots for each campaign
@@ -283,8 +285,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			creator: T::AccountId,
 			reward: BalanceOf<T>,
-			end: T::BlockNumber,
-			cooling_off_duration: T::BlockNumber,
+			end: BlockNumberFor<T>,
+			cooling_off_duration: BlockNumberFor<T>,
 			properties: Vec<u8>,
 			currency_id: FungibleTokenId,
 		) -> DispatchResult {
@@ -325,6 +327,17 @@ pub mod pallet {
 
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
+			// 3 storage inserts
+			let storage_fee: BalanceOf<T> =
+				Perbill::from_percent(3u32.saturating_mul(100)) * T::StorageDepositFee::get();
+
+			T::Currency::transfer(
+				&depositor,
+				&Self::network_treasury_account_id(),
+				storage_fee.saturated_into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			Campaigns::<T>::insert(
 				campaign_id,
 				CampaignInfo {
@@ -363,14 +376,14 @@ pub mod pallet {
 		/// - `properties`: information relevant for the campaign.
 		///
 		/// Emits `NewRewardCampaignCreated` if successful.
-		#[pallet::weight(T::WeightInfo::create_campaign() * (1u64 + reward.len() as u64))]
+		#[pallet::weight(T::WeightInfo::create_campaign().saturating_mul(1u64.saturating_add(reward.len() as u64)))]
 		#[transactional]
 		pub fn create_nft_campaign(
 			origin: OriginFor<T>,
 			creator: T::AccountId,
 			reward: Vec<(ClassId, TokenId)>,
-			end: T::BlockNumber,
-			cooling_off_duration: T::BlockNumber,
+			end: BlockNumberFor<T>,
+			cooling_off_duration: BlockNumberFor<T>,
 			properties: Vec<u8>,
 		) -> DispatchResult {
 			let depositor = ensure_signed(origin)?;
@@ -412,6 +425,17 @@ pub mod pallet {
 
 			T::Currency::transfer(&depositor, &fund_account, T::CampaignDeposit::get(), AllowDeath)?;
 
+			// 3 storage inserts
+			let storage_fee: BalanceOf<T> =
+				Perbill::from_percent(3u32.saturating_mul(100)) * T::StorageDepositFee::get();
+
+			T::Currency::transfer(
+				&depositor,
+				&Self::network_treasury_account_id(),
+				storage_fee.saturated_into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			Campaigns::<T>::insert(
 				campaign_id,
 				CampaignInfo {
@@ -452,12 +476,12 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 				ensure!(
-					campaign.end + campaign.cooling_off_duration >= now,
+					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
 					Error::<T>::CampaignExpired
 				);
 
@@ -491,7 +515,7 @@ pub mod pallet {
 		/// - `leaf_nodes`: list of the merkle tree nodes required for merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_reward_root() * (1u64 + leaf_nodes.len() as u64))]
+		#[pallet::weight(T::WeightInfo::claim_reward_root().saturating_mul(1u64.saturating_add(leaf_nodes.len() as u64)))]
 		#[transactional]
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
@@ -503,12 +527,12 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 				ensure!(
-					campaign.end + campaign.cooling_off_duration >= now,
+					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
 					Error::<T>::CampaignExpired
 				);
 
@@ -555,19 +579,19 @@ pub mod pallet {
 		/// - `amount`: the amount of NFTs that the account is going to claim
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_nft_reward() * (1u64 + amount))]
+		#[pallet::weight(T::WeightInfo::claim_nft_reward().saturating_mul(1u64.saturating_add(*amount)))]
 		#[transactional]
 		pub fn claim_nft_reward(origin: OriginFor<T>, id: CampaignId, amount: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 				ensure!(
-					campaign.end + campaign.cooling_off_duration >= now,
+					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
 					Error::<T>::CampaignExpired
 				);
 
@@ -614,7 +638,7 @@ pub mod pallet {
 		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_nft_reward_root() * (1u64 + reward_tokens.len() as u64))]
+		#[pallet::weight(T::WeightInfo::claim_nft_reward_root().saturating_mul(1u64.saturating_add(reward_tokens.len() as u64)))]
 		#[transactional]
 		pub fn claim_nft_reward_root(
 			origin: OriginFor<T>,
@@ -626,12 +650,12 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 				ensure!(
-					campaign.end + campaign.cooling_off_duration >= now,
+					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
 					Error::<T>::CampaignExpired
 				);
 
@@ -682,7 +706,7 @@ pub mod pallet {
 		/// - `rewards`: vector of account IDs and their's reward balances pairs.
 		///
 		/// Emits `SetReward` if successful.
-		#[pallet::weight(T::WeightInfo::set_reward() * rewards.len() as u64)]
+		#[pallet::weight(T::WeightInfo::set_reward().saturating_mul(rewards.len() as u64))]
 		#[transactional]
 		pub fn set_reward(
 			origin: OriginFor<T>,
@@ -700,10 +724,10 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(
-					campaign.end + campaign.cooling_off_duration >= now,
+					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
 					Error::<T>::CampaignExpired
 				);
 
@@ -754,10 +778,10 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(
-					campaign.end + campaign.cooling_off_duration >= now,
+					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
 					Error::<T>::CampaignExpired
 				);
 
@@ -797,7 +821,7 @@ pub mod pallet {
 		/// - `total_nfts_amount`: the total number of NFTs that will be rewrad.
 		///
 		/// Emits `SetReward` if successful.
-		#[pallet::weight(T::WeightInfo::set_nft_reward() * total_nfts_amount)]
+		#[pallet::weight(T::WeightInfo::set_nft_reward().saturating_mul(*total_nfts_amount))]
 		#[transactional]
 		pub fn set_nft_reward(
 			origin: OriginFor<T>,
@@ -816,10 +840,10 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(
-					campaign.end + campaign.cooling_off_duration >= now,
+					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
 					Error::<T>::CampaignExpired
 				);
 
@@ -828,7 +852,7 @@ pub mod pallet {
 						let mut new_cap = cap.clone();
 						let mut rewards_list: Vec<(T::AccountId, Vec<(ClassId, NftId)>)> = Vec::new();
 						let mut tokens: Vec<(ClassId, TokenId)> = Vec::new();
-						let mut total_amount_left: u64 = total_nfts_amount;
+						let total_amount_left: u64 = total_nfts_amount;
 						for (to, amount) in rewards {
 							let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
 							ensure!(t.is_empty(), Error::<T>::AccountAlreadyRewarded);
@@ -839,7 +863,7 @@ pub mod pallet {
 							);
 							total_amount_left.saturating_sub(amount);
 
-							for l in 0..amount {
+							for _l in 0..amount {
 								let token = new_cap.pop().ok_or(Error::<T>::RewardExceedCap)?;
 								tokens.push(token);
 							}
@@ -873,11 +897,18 @@ pub mod pallet {
 
 			let now = frame_system::Pallet::<T>::block_number();
 
+			T::Currency::transfer(
+				&who,
+				&Self::network_treasury_account_id(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
-				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				let campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
 				ensure!(
-					campaign.end + campaign.cooling_off_duration >= now,
+					campaign.end.saturating_add(campaign.cooling_off_duration) >= now,
 					Error::<T>::CampaignExpired
 				);
 
@@ -911,18 +942,18 @@ pub mod pallet {
 		/// - `merkle_roots_quanity`: the amount of merkle roots that were used for setting rewards.
 		///
 		/// Emits `RewardCampaignClosed` and/or `RewardCampaignRootClosed`  if successful.
-		#[pallet::weight(T::WeightInfo::close_campaign() * (1u64 + merkle_roots_quantity))]
+		#[pallet::weight(T::WeightInfo::close_campaign().saturating_mul(1u64.saturating_add(*merkle_roots_quantity)))]
 		#[transactional]
 		pub fn close_campaign(origin: OriginFor<T>, id: CampaignId, merkle_roots_quantity: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
 			ensure!(who == campaign.creator, Error::<T>::NotCampaignCreator);
 
 			ensure!(
-				campaign.end + campaign.cooling_off_duration < now,
+				campaign.end.saturating_add(campaign.cooling_off_duration) < now,
 				Error::<T>::CampaignStillActive
 			);
 
@@ -972,18 +1003,18 @@ pub mod pallet {
 		/// - `left_nfts`: the amount of unclaimed NFTs in the reward pool.
 		///
 		/// Emits `RewardCampaignClosed` and/or `RewardCampaignRootClosed`  if successful.
-		#[pallet::weight(T::WeightInfo::close_nft_campaign() * (1u64 + left_nfts))]
+		#[pallet::weight(T::WeightInfo::close_nft_campaign().saturating_mul(1u64.saturating_add(*left_nfts)))]
 		#[transactional]
 		pub fn close_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
 			ensure!(who == campaign.creator, Error::<T>::NotCampaignCreator);
 
 			ensure!(
-				campaign.end + campaign.cooling_off_duration < now,
+				campaign.end.saturating_add(campaign.cooling_off_duration) < now,
 				Error::<T>::CampaignStillActive
 			);
 
@@ -1035,7 +1066,7 @@ pub mod pallet {
 			T::AdminOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
 			ensure!(campaign.end > now, Error::<T>::CampaignEnded);
 
@@ -1061,12 +1092,12 @@ pub mod pallet {
 		/// - `left_nfts`: the size of the NFT reward pool.
 		///
 		/// Emits `RewardCampaignCanceled` if successful.
-		#[pallet::weight(T::WeightInfo::cancel_nft_campaign() * (1u64 + left_nfts))]
+		#[pallet::weight(T::WeightInfo::cancel_nft_campaign().saturating_mul(1u64.saturating_add(*left_nfts)))]
 		pub fn cancel_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
 			ensure!(campaign.end > now, Error::<T>::CampaignEnded);
 
@@ -1103,6 +1134,13 @@ pub mod pallet {
 				Error::<T>::SetRewardOriginAlreadyAdded
 			);
 
+			T::Currency::transfer(
+				&account,
+				&Self::network_treasury_account_id(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			SetRewardOrigins::<T>::insert(account.clone(), ());
 
 			Self::deposit_event(Event::<T>::SetRewardOriginAdded(account));
@@ -1135,10 +1173,10 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		/// Hook that is called every time a new block is finalized.
-		fn on_finalize(block_number: T::BlockNumber) {
-			for (id, info) in Campaigns::<T>::iter()
+		fn on_finalize(block_number: BlockNumberFor<T>) {
+			for (id, _info) in Campaigns::<T>::iter()
 				.filter(|(_, campaign_info)| campaign_info.end == block_number)
 				.collect::<Vec<_>>()
 			{
@@ -1149,7 +1187,7 @@ pub mod pallet {
 		/// Hook that is called every time the runtime is upgraded.
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_campaign_info_v3();
-			Weight::from_ref_time(0)
+			Weight::from_parts(0, 0)
 		}
 	}
 }
@@ -1161,6 +1199,11 @@ impl<T: Config> Pallet<T> {
 	/// value and only call this once.
 	pub fn fund_account_id(id: CampaignId) -> T::AccountId {
 		T::PalletId::get().into_sub_account_truncating(id)
+	}
+
+	/// The account ID of the network treasury
+	pub fn network_treasury_account_id() -> T::AccountId {
+		T::PalletId::get().into_account_truncating()
 	}
 
 	/// Generate unique ChildInfo IDs
@@ -1321,10 +1364,10 @@ impl<T: Config> Pallet<T> {
 			let mut upgraded_campaign_items = 0;
 
 			Campaigns::<T>::translate(
-				|k, campaign_info_v1: CampaignInfoV1<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+				|k, campaign_info_v1: CampaignInfoV1<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>| {
 					upgraded_campaign_items += 1;
 
-					let v2: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber> = CampaignInfo {
+					let v2: CampaignInfo<T::AccountId, BalanceOf<T>, BlockNumberFor<T>> = CampaignInfo {
 						creator: campaign_info_v1.creator,
 						properties: Vec::<u8>::new(),
 						reward: campaign_info_v1.reward,
@@ -1338,7 +1381,7 @@ impl<T: Config> Pallet<T> {
 				},
 			);
 			log::info!("{} campaigns upgraded:", upgraded_campaign_items);
-			Weight::from_ref_time(0)
+			Weight::from_parts(0, 0)
 		}
 	*/
 
@@ -1348,14 +1391,14 @@ impl<T: Config> Pallet<T> {
 		let mut upgraded_campaign_items = 0;
 
 		Campaigns::<T>::translate(
-			|k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+			|_k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>| {
 				upgraded_campaign_items += 1;
 
 				let v3_reward = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.reward);
 				let v3_claimed = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.claimed);
 				let v3_cap = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.cap);
 
-				let v3: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId> =
+				let v3: CampaignInfo<T::AccountId, BalanceOf<T>, BlockNumberFor<T>, FungibleTokenId, ClassId, TokenId> =
 					CampaignInfo {
 						creator: campaign_info_v2.creator,
 						properties: campaign_info_v2.properties,
@@ -1370,6 +1413,6 @@ impl<T: Config> Pallet<T> {
 			},
 		);
 		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 }

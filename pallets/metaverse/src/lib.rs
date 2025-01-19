@@ -20,7 +20,7 @@
 use codec::{Decode, Encode, HasCompact};
 use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
-	ensure, log,
+	ensure,
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
 	PalletId,
@@ -80,7 +80,7 @@ pub struct MetaverseStakingPoints<AccountId: Ord, Balance: HasCompact> {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
-	use sp_runtime::traits::{CheckedAdd, Saturating};
+
 	use sp_runtime::ArithmeticError;
 
 	use primitives::staking::RoundInfo;
@@ -100,7 +100,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The currency type
-		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+		type Currency: LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>
 			+ ReservableCurrency<Self::AccountId>;
 		/// The multicurrencies type
 		type MultiCurrency: MultiCurrencyExtended<
@@ -108,6 +108,9 @@ pub mod pallet {
 			CurrencyId = FungibleTokenId,
 			Balance = BalanceOf<Self>,
 		>;
+		/// The network treasury account
+		#[pallet::constant]
+		type NetworkTreasury: Get<Self::AccountId>;
 		/// The metaverse treasury pallet
 		#[pallet::constant]
 		type MetaverseTreasury: Get<PalletId>;
@@ -129,6 +132,10 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 		/// NFT handler required for minting classes for lands and estates when creating a metaverse
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]
@@ -161,7 +168,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn staking_round)]
 	/// Tracks current staking round index and next round scheduled transition.
-	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<BlockNumberFor<T>>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_registered_metaverse)]
@@ -292,6 +299,13 @@ pub mod pallet {
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			T::Currency::transfer(
+				&who.clone(),
+				&T::NetworkTreasury::get(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 			// Get owner of the metaverse
 			MetaverseOwner::<T>::try_mutate_exists(
 				&who,
@@ -310,7 +324,7 @@ pub mod pallet {
 					MetaverseOwner::<T>::insert(to.clone(), metaverse_id.clone(), ());
 
 					Metaverses::<T>::try_mutate_exists(&metaverse_id, |metaverse| -> DispatchResultWithPostInfo {
-						let mut metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
+						let metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
 						metaverse_record.owner = to.clone();
 						Self::deposit_event(Event::<T>::TransferredMetaverse(metaverse_id, who.clone(), to.clone()));
 
@@ -444,7 +458,7 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {
@@ -480,7 +494,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		ensure!(
-			T::Currency::free_balance(who) >= T::MinContribution::get(),
+			T::Currency::free_balance(who) >= T::MinContribution::get() + T::StorageDepositFee::get(),
 			Error::<T>::InsufficientContribution
 		);
 
@@ -490,6 +504,14 @@ impl<T: Config> Pallet<T> {
 			T::MinContribution::get(),
 			ExistenceRequirement::KeepAlive,
 		)?;
+
+		T::Currency::transfer(
+			who,
+			&T::NetworkTreasury::get(),
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+
 		let metaverse_id = Self::new_metaverse(&who, metadata)?;
 
 		MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
@@ -523,7 +545,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Minting of a land class for the metaverse
-	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn mint_metaverse_land_class(_sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for lands
 		let mut land_class_attributes = Attributes::new();
 		land_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
@@ -543,7 +565,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Minting of an estate class for the metaverse
-	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn mint_metaverse_estate_class(
+		_sender: &T::AccountId,
+		metaverse_id: MetaverseId,
+	) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for estates
 		let mut estate_class_attributes = Attributes::new();
 		estate_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
@@ -589,7 +614,7 @@ impl<T: Config> Pallet<T> {
 		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
 		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
 
-		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
+		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
 			upgraded_metaverse_items += 1;
 
 			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
@@ -604,7 +629,7 @@ impl<T: Config> Pallet<T> {
 			Some(v2)
 		});
 		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 
 	/// Internal update of metaverse info to v3
@@ -634,7 +659,7 @@ impl<T: Config> Pallet<T> {
 		});
 		log::info!("{} metaverses in total:", total_metaverse_items);
 		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 }
 
@@ -660,7 +685,7 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 
 	fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Metaverses::<T>::try_mutate_exists(&metaverse_id, |metaverse| {
-			let mut metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
+			let metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
 
 			ensure!(
 				metaverse_record.currency_id == FungibleTokenId::NativeToken(0),

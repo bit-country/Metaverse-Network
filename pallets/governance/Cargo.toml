@@ -1,19 +1,19 @@
 [package]
-authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for governance logic.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-governance'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Bit Country <https://github.com/bit-country>"]
+description = "Bit Country pallet for governance logic."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-governance"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { workspace = true, optional = true }
-codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false }
+codec = { workspace = true, package = "parity-scale-codec" }
 scale-info = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
@@ -39,22 +39,26 @@ orml-tokens = { workspace = true }
 
 
 [features]
-default = ['std']
+default = ["std"]
 std = [
-    'serde',
-    'codec/std',
-    'frame-support/std',
-    'frame-system/std',
-    'sp-runtime/std',
-    'sp-core/std',
+    "serde",
+    "codec/std",
+    "frame-support/std",
+    "frame-system/std",
+    "frame-executive/std",
+    "sp-runtime/std",
+    "sp-core/std",
     "sp-std/std",
     "sp-io/std",
-    'pallet-balances/std',
-    'pallet-scheduler/std',
-    'primitives/std',
-    'metaverse-primitive/std',
-    'pallet-metaverse/std',
-    'scale-info/std',
+    "sp-version/std",
+    "pallet-balances/std",
+    "pallet-scheduler/std",
+    "primitives/std",
+    "metaverse-primitive/std",
+    "pallet-metaverse/std",
+    "scale-info/std",
     "orml-tokens/std",
+    "orml-traits/std",
+    "orml-currencies/std",
     "currencies/std"
 ]

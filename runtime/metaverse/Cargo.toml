@@ -1,7 +1,7 @@
 #Metaverse Parachain runtime - need to merge rococo branch back to this runtime
 [package]
 authors = ["Metaverse.Network & Bit.Country Developers <https://github.com/bit-country>"]
-edition = '2021'
+edition = "2021"
 homepage = "https://metaverse.network"
 license = "Unlicense"
 name = "metaverse-runtime"
@@ -14,18 +14,20 @@ publish = false
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-
-codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive"] }
+codec = { workspace = true, package = "parity-scale-codec" }
 serde = { workspace = true, optional = true, default-features = false }
+serde_json = { workspace = true, default-features = false, features = ["alloc"] }
 scale-info = { workspace = true }
 hex-literal = { workspace = true }
 getrandom = { workspace = true }
+curve25519-dalek = { workspace = true }
+
 
 pallet-aura = { workspace = true }
 pallet-balances = { workspace = true }
 frame-support = { workspace = true }
 pallet-grandpa = { workspace = true }
-pallet-randomness-collective-flip = { workspace = true }
+pallet-insecure-randomness-collective-flip = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-collective = { workspace = true }
 pallet-vesting = { workspace = true }
@@ -46,6 +48,7 @@ sp-session = { workspace = true }
 sp-std = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
+sp-weights = { workspace = true }
 
 pallet-authorship = { workspace = true }
 pallet-session = { workspace = true }
@@ -59,7 +62,7 @@ pallet-collator-selection = { workspace = true }
 pallet-proxy = { workspace = true }
 
 frame-try-runtime = { workspace = true, optional = true }
-try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38", optional = true, default-features = false }
+try-runtime-cli = { workspace = true, optional = true }
 polkadot-primitives = { workspace = true }
 
 # Used for the node template"s RPCs
@@ -72,6 +75,7 @@ frame-system-benchmarking = { workspace = true, optional = true }
 
 # EVM pallets
 pallet-evm = { workspace = true }
+pallet-evm-chain-id = { workspace = true }
 pallet-ethereum = { workspace = true }
 pallet-base-fee = { workspace = true }
 fp-self-contained = { workspace = true }
@@ -84,6 +88,7 @@ orml-tokens = { workspace = true }
 orml-traits = { workspace = true }
 orml-nft = { workspace = true }
 orml-oracle = { workspace = true }
+orml-rewards = { workspace = true }
 orml-benchmarking = { workspace = true, optional = true }
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
@@ -104,6 +109,7 @@ core-primitives = { path = "../../traits/core-primitives", default-features = fa
 metaverse-runtime-common = { path = "../common", default-features = false }
 asset-manager = { path = "../../pallets/asset-manager", default-features = false }
 evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", default-features = false }
+spp = { package = "pallet-spp", path = "../../pallets/spp", default-features = false }
 
 modules-bridge = { path = "../../modules/bridge", default-features = false }
 
@@ -114,6 +120,18 @@ pallet-contracts-primitives = { workspace = true }
 # XCM builder ( need to be used to build the runtime benchmarking correctly)
 xcm-builder = { workspace = true }
 
+# Cumulus Dependencies
+cumulus-pallet-aura-ext = { workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
+cumulus-pallet-dmp-queue = { workspace = true }
+cumulus-pallet-xcm = { workspace = true }
+cumulus-pallet-xcmp-queue = { workspace = true }
+cumulus-primitives-core = { workspace = true }
+cumulus-primitives-timestamp = { workspace = true }
+cumulus-primitives-utility = { workspace = true }
+cumulus-pallet-session-benchmarking = { workspace = true }
+parachain-info = { workspace = true }
+
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
 
@@ -122,7 +140,9 @@ default = ["std"]
 std = [
     "codec/std",
     "serde",
+    "serde_json/std",
     "scale-info/std",
+    "getrandom/std",
     "frame-executive/std",
     "frame-support/std",
     "frame-system-rpc-runtime-api/std",
@@ -131,7 +151,7 @@ std = [
     "pallet-balances/std",
     "pallet-collective/std",
     "pallet-grandpa/std",
-    "pallet-randomness-collective-flip/std",
+    "pallet-insecure-randomness-collective-flip/std",
     "pallet-sudo/std",
     "pallet-session/std",
     "pallet-timestamp/std",
@@ -155,18 +175,23 @@ std = [
     "sp-runtime/std",
     "sp-session/std",
     "sp-std/std",
+    "sp-weights/std",
     "sp-transaction-pool/std",
     "sp-version/std",
+    "sp-io/std",
     "auction-manager/std",
     "orml-currencies/std",
     "orml-tokens/std",
     "orml-nft/std",
     "orml-oracle/std",
+    "orml-rewards/std",
+    "orml-traits/std",
     "primitives/std",
     "metaverse/std",
     "auction/std",
     "estate/std",
     "nft/std",
+    "asset-manager/std",
     "continuum/std",
     "currencies/std",
     "mining/std",
@@ -176,6 +201,7 @@ std = [
     "economy/std",
     "emergency/std",
     "evm-mapping/std",
+    "spp/std",
     "pallet-utility/std",
     "pallet-collator-selection/std",
     "orml-benchmarking/std",
@@ -185,11 +211,26 @@ std = [
     "fp-evm/std",
     "pallet-ethereum/std",
     "pallet-evm/std",
+    "pallet-evm-chain-id/std",
     "pallet-contracts/std",
     "pallet-contracts-primitives/std",
     "frame-try-runtime/std",
     "metaverse-runtime-common/std",
-    "modules-bridge/std"
+    "modules-bridge/std",
+    "core-primitives/std",
+    "cumulus-pallet-aura-ext/std",
+    "cumulus-pallet-parachain-system/std",
+    "cumulus-pallet-xcmp-queue/std",
+    "cumulus-pallet-dmp-queue/std",
+    "cumulus-pallet-xcm/std",
+    "cumulus-primitives-core/std",
+    "cumulus-primitives-timestamp/std",
+    "cumulus-primitives-utility/std",
+    "polkadot-primitives/std", 
+    "parachain-info/std", 
+    "frame-benchmarking/std",
+    "frame-system-benchmarking/std",
+    "cumulus-pallet-session-benchmarking/std",
 ]
 runtime-benchmarks = [
     "xcm-builder/runtime-benchmarks",
@@ -201,6 +242,19 @@ runtime-benchmarks = [
     "pallet-balances/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-collective/runtime-benchmarks",
+    "pallet-preimage/runtime-benchmarks",
+    "pallet-proxy/runtime-benchmarks",
+    "pallet-treasury/runtime-benchmarks",
+    "pallet-vesting/runtime-benchmarks",
+    "pallet-membership/runtime-benchmarks",
+    "pallet-scheduler/runtime-benchmarks",
+    "pallet-collator-selection/runtime-benchmarks",
+    "pallet-contracts/runtime-benchmarks",
+    "pallet-grandpa/runtime-benchmarks",
+    "pallet-sudo/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+    "polkadot-primitives/runtime-benchmarks",
+    "orml-tokens/runtime-benchmarks",
     "nft/runtime-benchmarks",
     "estate/runtime-benchmarks",
     "emergency/runtime-benchmarks",
@@ -213,12 +267,17 @@ runtime-benchmarks = [
     "mining/runtime-benchmarks",
     "evm-mapping/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
-    "pallet-ethereum/runtime-benchmarks"
+    "pallet-ethereum/runtime-benchmarks",
+    "pallet-evm/runtime-benchmarks",
+    "cumulus-pallet-session-benchmarking/runtime-benchmarks",
+    "cumulus-pallet-parachain-system/runtime-benchmarks",
+    "cumulus-pallet-xcmp-queue/runtime-benchmarks",
 ]
 
 disable-runtime-api = []
 
 try-runtime = [
+    "try-runtime-cli",
     "frame-executive/try-runtime",
     "frame-try-runtime",
     "frame-system/try-runtime",

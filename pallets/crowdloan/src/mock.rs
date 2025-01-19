@@ -1,14 +1,13 @@
 #![cfg(test)]
 
 use frame_support::traits::WithdrawReasons;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
-use frame_system::EnsureSignedBy;
-use sp_core::H256;
-use sp_runtime::traits::{ConvertInto, Identity};
-use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use primitives::FungibleTokenId;
+use frame_support::traits::VestingSchedule;
+use sp_core::H256;
+use sp_runtime::traits::ConvertInto;
+use sp_runtime::BuildStorage;
+use sp_runtime::{traits::IdentityLookup, Perbill};
 
 use crate as crowdloan;
 
@@ -54,14 +53,13 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
@@ -94,6 +92,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 
 parameter_types! {
@@ -124,29 +126,29 @@ impl VestingSchedule<AccountId> for VestingScheduleTrait {
 	type Moment = ();
 	type Currency = Balances;
 
-	fn vesting_balance(who: &AccountId) -> Option<Balance> {
+	fn vesting_balance(_who: &AccountId) -> Option<Balance> {
 		None
 	}
 
 	fn add_vesting_schedule(
-		who: &AccountId,
-		locked: Balance,
-		per_block: Balance,
-		starting_block: Self::Moment,
+		_who: &AccountId,
+		_locked: Balance,
+		_per_block: Balance,
+		_starting_block: Self::Moment,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn can_add_vesting_schedule(
-		who: &AccountId,
-		locked: Balance,
-		per_block: Balance,
-		starting_block: Self::Moment,
+		_who: &AccountId,
+		_locked: Balance,
+		_per_block: Balance,
+		_starting_block: Self::Moment,
 	) -> DispatchResult {
 		Ok(())
 	}
 
-	fn remove_vesting_schedule(who: &AccountId, schedule_index: u32) -> DispatchResult {
+	fn remove_vesting_schedule(_who: &AccountId, _schedule_index: u32) -> DispatchResult {
 		Ok(())
 	}
 }
@@ -165,7 +167,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Config<T> ,Event<T>},
 		Crowdloan: crowdloan:: {Pallet, Call, Storage, Event<T>},
@@ -187,8 +189,8 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {

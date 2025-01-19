@@ -1,25 +1,27 @@
 #![cfg(test)]
 
 use frame_support::{assert_noop, assert_ok};
+use sp_core::crypto::AccountId32;
 use sp_std::collections::btree_map::BTreeMap;
 
 use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, NFTTrait, TokenType};
 use mock::{RuntimeEvent, *};
-use primitives::ItemId::NFT;
-use primitives::{ClassId, FungibleTokenId};
+
+use primitives::FungibleTokenId;
 
 use super::*;
 
+pub const ALICE: AccountId = AccountId32::new([1; 32]);
+pub const BOB: AccountId = AccountId32::new([2; 32]);
+pub const NO_METAVERSE_OWNER: AccountId = AccountId32::new([3; 32]);
+pub const GENERAL_METAVERSE_FUND: AccountId = AccountId32::new([102; 32]);
+
 fn init_test_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
-	assert_ok!(NFTModule::<Runtime>::create_group(
-		RuntimeOrigin::root(),
-		vec![1],
-		vec![1]
-	));
+	assert_ok!(NFTModule::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
 
-	assert_ok!(NFTModule::<Runtime>::create_class(
+	assert_ok!(NFTModule::create_class(
 		owner.clone(),
 		vec![1],
 		test_attributes(1),
@@ -30,24 +32,14 @@ fn init_test_nft(owner: RuntimeOrigin) {
 		None
 	));
 
-	assert_ok!(NFTModule::<Runtime>::mint(
-		owner.clone(),
-		CLASS_ID,
-		vec![1],
-		test_attributes(1),
-		1
-	));
+	assert_ok!(NFTModule::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
 
 fn init_test_stackable_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
-	assert_ok!(NFTModule::<Runtime>::create_group(
-		RuntimeOrigin::root(),
-		vec![1],
-		vec![1]
-	));
+	assert_ok!(NFTModule::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
 
-	assert_ok!(NFTModule::<Runtime>::create_class(
+	assert_ok!(NFTModule::create_class(
 		owner.clone(),
 		vec![1],
 		test_attributes(1),
@@ -58,7 +50,7 @@ fn init_test_stackable_nft(owner: RuntimeOrigin) {
 		None
 	));
 
-	assert_ok!(NFTModule::<Runtime>::mint_stackable_nft(
+	assert_ok!(NFTModule::mint_stackable_nft(
 		owner.clone(),
 		CLASS_ID,
 		vec![1],
@@ -101,7 +93,7 @@ fn create_new_auction_work() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
-		assert_eq!(Balances::free_balance(ALICE), 99996);
+		assert_eq!(Balances::free_balance(ALICE), 99995);
 	});
 }
 
@@ -133,7 +125,7 @@ fn create_new_multicurrency_auction_work() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
-		assert_eq!(Balances::free_balance(ALICE), 99996);
+		assert_eq!(Balances::free_balance(ALICE), 99995);
 	});
 }
 
@@ -172,7 +164,7 @@ fn create_new_auction_bundle_work() {
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
 			Some(true)
 		);
-		assert_eq!(Balances::free_balance(ALICE), 99990);
+		assert_eq!(Balances::free_balance(ALICE), 99987);
 	});
 }
 
@@ -211,7 +203,7 @@ fn create_new_multicurrency_auction_bundle_work() {
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
 			Some(true)
 		);
-		assert_eq!(Balances::free_balance(ALICE), 99990);
+		assert_eq!(Balances::free_balance(ALICE), 99987);
 	});
 }
 
@@ -223,10 +215,7 @@ fn create_new_stackable_nft_auction_work() {
 		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(
-			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			100u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 100u128);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -252,12 +241,9 @@ fn create_new_stackable_nft_auction_work() {
 			AuctionModule::items_in_auction(ItemId::StackableNFT(0, 0, 50u128)),
 			Some(true)
 		);
-		assert_eq!(Balances::free_balance(ALICE), 99996);
-		assert_eq!(
-			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			50u128
-		);
-		let is_transferable = NFTModule::<Runtime>::is_transferable(&(0, 0));
+		assert_eq!(Balances::free_balance(ALICE), 99995);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 50u128);
+		let is_transferable = NFTModule::is_transferable(&(0, 0));
 		assert_eq!(is_transferable, Ok(false));
 	});
 }
@@ -344,7 +330,7 @@ fn create_new_buy_now_bundle_work() {
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
 			Some(true)
 		);
-		assert_eq!(Balances::free_balance(ALICE), 99990);
+		assert_eq!(Balances::free_balance(ALICE), 99987);
 	});
 }
 
@@ -383,7 +369,7 @@ fn create_new_multicurrency_buy_now_bundle_work() {
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
 			Some(true)
 		);
-		assert_eq!(Balances::free_balance(ALICE), 99990);
+		assert_eq!(Balances::free_balance(ALICE), 99987);
 	});
 }
 
@@ -394,10 +380,7 @@ fn create_new_stackable_nft_buy_now_work() {
 		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(
-			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			100u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 100u128);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -424,12 +407,9 @@ fn create_new_stackable_nft_buy_now_work() {
 			AuctionModule::items_in_auction(ItemId::StackableNFT(0, 0, 30u128)),
 			Some(true)
 		);
-		assert_eq!(Balances::free_balance(ALICE), 99996);
-		assert_eq!(
-			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			70u128
-		);
-		let is_transferable = NFTModule::<Runtime>::is_transferable(&(0, 0));
+		assert_eq!(Balances::free_balance(ALICE), 99995);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 70u128);
+		let is_transferable = NFTModule::is_transferable(&(0, 0));
 		assert_eq!(is_transferable, Ok(false));
 	});
 }
@@ -440,13 +420,9 @@ fn create_auction_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(ALICE);
 
-		assert_ok!(NFTModule::<Runtime>::create_group(
-			RuntimeOrigin::root(),
-			vec![1],
-			vec![1]
-		));
+		assert_ok!(NFTModule::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
 
-		assert_ok!(NFTModule::<Runtime>::create_class(
+		assert_ok!(NFTModule::create_class(
 			owner.clone(),
 			vec![1],
 			Default::default(),
@@ -457,13 +433,7 @@ fn create_auction_fail() {
 			None
 		));
 
-		assert_ok!(NFTModule::<Runtime>::mint(
-			owner.clone(),
-			CLASS_ID,
-			vec![1],
-			Default::default(),
-			1
-		));
+		assert_ok!(NFTModule::mint(owner.clone(), CLASS_ID, vec![1], Default::default(), 1));
 		//account does not have permission to create auction
 		assert_noop!(
 			AuctionModule::create_auction(
@@ -480,7 +450,7 @@ fn create_auction_fail() {
 			Error::<Runtime>::NoPermissionToCreateAuction
 		);
 
-		assert_ok!(NFTModule::<Runtime>::create_class(
+		assert_ok!(NFTModule::create_class(
 			owner.clone(),
 			vec![1],
 			Default::default(),
@@ -491,13 +461,7 @@ fn create_auction_fail() {
 			None
 		));
 
-		assert_ok!(NFTModule::<Runtime>::mint(
-			owner.clone(),
-			1,
-			vec![1],
-			Default::default(),
-			1
-		));
+		assert_ok!(NFTModule::mint(owner.clone(), 1, vec![1], Default::default(), 1));
 
 		//Class is BoundToAddress
 		assert_noop!(
@@ -529,7 +493,7 @@ fn create_auction_fail() {
 		));
 
 		// ALICE balance is 100000 - 1 (network fee) - 6 (minting fee) = 99993
-		assert_eq!(Balances::free_balance(ALICE), 99993);
+		assert_eq!(Balances::free_balance(ALICE), 99991);
 
 		assert_noop!(
 			AuctionModule::create_auction(
@@ -573,8 +537,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			FungibleTokenId::NativeToken(0)
 		));
 
-		// ALICE balance is 100 000 - 1 (network fee) - 12 (minting fees) = 99987
-		assert_eq!(Balances::free_balance(ALICE), 99987);
+		// ALICE balance is 100 000 - 1 (network fee) - 12 (minting fees) - 4 (class storage fee) = 99983
+		assert_eq!(Balances::free_balance(ALICE), 99983);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -588,8 +552,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			FungibleTokenId::NativeToken(0)
 		));
 
-		// ALICE balance is 99987 - 1 (network fee) = 99986
-		assert_eq!(Balances::free_balance(ALICE), 99986);
+		// ALICE balance is 99983 - 1 (network fee) = 99982
+		assert_eq!(Balances::free_balance(ALICE), 99982);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -603,8 +567,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			FungibleTokenId::NativeToken(0)
 		));
 
-		// ALICE balance is 99986 - 1 (network fee) = 99985
-		assert_eq!(Balances::free_balance(ALICE), 99985);
+		// ALICE balance is 99982 - 1 (network fee)  = 99981
+		assert_eq!(Balances::free_balance(ALICE), 99981);
 
 		// Mocking max finality is 3
 		// 4th auction with new block should fail
@@ -638,8 +602,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			FungibleTokenId::NativeToken(0)
 		));
 
-		// ALICE balance is 99985 - 1 (network fee) = 99984
-		assert_eq!(Balances::free_balance(ALICE), 99984);
+		// ALICE balance is 99981 - 1 (network fee) = 99980
+		assert_eq!(Balances::free_balance(ALICE), 99980);
 	});
 }
 
@@ -785,7 +749,7 @@ fn bid_works() {
 		assert_eq!(
 			AuctionModule::auctions(0),
 			Some(AuctionInfo {
-				bid: Some((1, 200)),
+				bid: Some((ALICE, 200)),
 				start: 1,
 				end: Some(101),
 			})
@@ -825,7 +789,7 @@ fn bid_anti_snipe_duration_works() {
 		assert_eq!(
 			AuctionModule::auctions(0),
 			Some(AuctionInfo {
-				bid: Some((1, 200)),
+				bid: Some((ALICE, 200)),
 				start: 1,
 				end: Some(106),
 			})
@@ -848,7 +812,7 @@ fn bid_anti_snipe_duration_works() {
 		// Verify if auction finalized with new end time.
 		assert_eq!(
 			last_event(),
-			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 201))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 201))
 		);
 	});
 }
@@ -1019,7 +983,7 @@ fn asset_transfers_after_auction() {
 
 		// Setup NFT and verify that BOB has ownership
 		init_test_nft(owner.clone());
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&BOB, &(0, 0)), Ok(true));
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -1040,24 +1004,24 @@ fn asset_transfers_after_auction() {
 		);
 
 		// BOB should have 500 - 1 (network reserve fee) - 3 minting fee = 496
-		assert_eq!(Balances::free_balance(BOB), 496);
+		assert_eq!(Balances::free_balance(BOB), 495);
 
 		run_to_block(102);
 		// Verify asset transfers to alice after end of auction
 		assert_eq!(
 			last_event(),
-			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 200))
 		);
 
 		// Verify transfer of fund (minus gas)
 		// BOB only receive 200 - 2 (1% royalty fee) - 2 (1% network fee) - 4 (minting fee) = 193
 		// 500 + 193 = 693
-		assert_eq!(Balances::free_balance(BOB), 693);
-		assert_eq!(Balances::free_balance(ALICE), 99800);
+		assert_eq!(Balances::free_balance(BOB), 692);
+		assert_eq!(Balances::free_balance(ALICE), 99799);
 
 		// Verify Alice has the NFT and Bob doesn't
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(false));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&BOB, &(0, 0)), Ok(false));
 	});
 }
 
@@ -1073,7 +1037,7 @@ fn asset_transfers_after_multicurrency_auction() {
 
 		// Setup NFT and verify that BOB has ownership
 		init_test_nft(owner.clone());
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&BOB, &(0, 0)), Ok(true));
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -1094,13 +1058,13 @@ fn asset_transfers_after_multicurrency_auction() {
 		);
 
 		// BOB should have 500 - 1 (network reserve fee) - 3 minting fee = 496
-		assert_eq!(Balances::free_balance(BOB), 496);
+		assert_eq!(Balances::free_balance(BOB), 495);
 
 		run_to_block(102);
 		// Verify asset transfers to alice after end of auction
 		assert_eq!(
 			last_event(),
-			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 200))
 		);
 
 		// Verify transfer of fund
@@ -1108,8 +1072,8 @@ fn asset_transfers_after_multicurrency_auction() {
 		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9800);
 
 		// Verify Alice has the NFT and Bob doesn't
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(false));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&BOB, &(0, 0)), Ok(false));
 	});
 }
 
@@ -1167,13 +1131,7 @@ fn buy_now_work() {
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
-		assert_ok!(NFTModule::<Runtime>::mint(
-			owner.clone(),
-			CLASS_ID,
-			vec![1],
-			Default::default(),
-			1
-		));
+		assert_ok!(NFTModule::mint(owner.clone(), CLASS_ID, vec![1], Default::default(), 1));
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -1191,8 +1149,8 @@ fn buy_now_work() {
 
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 1)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 1)), Ok(true));
 
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99600);
@@ -1200,7 +1158,7 @@ fn buy_now_work() {
 		// royalty fee 1% for both sales is 8
 		// network fee 1% for both sales is 8
 		// 900 - 16 + 7 for deposit minting = 885
-		assert_eq!(Balances::free_balance(BOB), 888);
+		assert_eq!(Balances::free_balance(BOB), 887);
 
 		// event was triggered
 		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
@@ -1241,7 +1199,7 @@ fn multicurrency_buy_now_work() {
 
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 0)), Ok(true));
 
 		// check balances were transferred
 		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5196);
@@ -1286,26 +1244,26 @@ fn buy_now_with_bundle_should_work() {
 			FungibleTokenId::NativeToken(0)
 		));
 
-		// BOB Balance is 500 - 1 (network reserve fee) - 9 (minting fee) = 490
-		assert_eq!(Balances::free_balance(BOB), 490);
+		// BOB Balance is 500 - 1 (network reserve fee) - 9 (minting fee) - 3 (class storage fee) = 487
+		assert_eq!(Balances::free_balance(BOB), 487);
 
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 1)), Ok(true));
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 2)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 1)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 2)), Ok(true));
 
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 
 		// initial BOB balance is 500
 		// bundle buy now price is 200
-		// 200 - 2 (1% royalty_fee) - 2 (1% network fee) - 10 (minting fee) = 186
-		// 500 + 186 = 686
-		assert_eq!(Balances::free_balance(BOB), 686);
+		// 200 - 2 (1% royalty_fee) - 2 (1% network fee) - 10 (minting fee) - 3 (class storage fee) = 183
+		// 500 + 186 = 683
+		assert_eq!(Balances::free_balance(BOB), 683);
 
 		// event was triggered
 		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
@@ -1344,17 +1302,17 @@ fn multicurrency_buy_now_with_bundle_should_work() {
 			FungibleTokenId::MiningResource(0)
 		));
 
-		// BOB Balance is 500 - 1 (network reserve fee) - 9 (minting fee) = 490
-		assert_eq!(Balances::free_balance(BOB), 490);
+		// BOB Balance is 500 - 1 (network reserve fee) - 9 (minting fee) - 3 (class storage fee) = 487
+		assert_eq!(Balances::free_balance(BOB), 487);
 
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 1)), Ok(true));
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 2)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 1)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 2)), Ok(true));
 
 		// check balances were transferred
 		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5195);
@@ -1381,10 +1339,7 @@ fn buy_now_stackable_nft_work() {
 
 		init_test_stackable_nft(owner.clone());
 
-		assert_eq!(
-			NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)),
-			100u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)), 100u128);
 
 		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
@@ -1398,30 +1353,21 @@ fn buy_now_stackable_nft_work() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0)
 		));
-		assert_eq!(
-			NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)),
-			70u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		//assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(
-			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
-			30u128
-		);
-		assert_eq!(
-			NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)),
-			70u128
-		);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 30u128);
+		assert_eq!(NFTModule::get_free_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
 
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 		// initial balance is 500 - sold 200 = 700
 		// royalty fee 1% for both sales is 4
 		// network fee 1% for both sales is 4
-		// 700 - 8 + 1 for deposit minting = 693
-		assert_eq!(Balances::free_balance(BOB), 693);
+		// 700 - 8 + 1 for deposit minting - 1 class storage fee deposit  = 692
+		assert_eq!(Balances::free_balance(BOB), 692);
 
 		// event was triggered
 		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
@@ -1434,7 +1380,7 @@ fn buy_now_stackable_nft_work() {
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
 			Error::<Runtime>::AuctionDoesNotExist
 		);
-		let is_transferable = NFTModule::<Runtime>::is_transferable(&(0, 0));
+		let is_transferable = NFTModule::is_transferable(&(0, 0));
 		assert_eq!(is_transferable, Ok(false));
 	});
 }
@@ -1463,7 +1409,7 @@ fn buy_now_should_fail() {
 		));
 
 		// BOB balance is 500 - 1 (network fee) - 3 (minting fee) = 496
-		assert_eq!(Balances::free_balance(BOB), 496);
+		assert_eq!(Balances::free_balance(BOB), 495);
 
 		// no auction id
 		assert_noop!(
@@ -1507,7 +1453,7 @@ fn buy_now_should_fail() {
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
 
 		// BOB balance is 500 + 150 - 1 (royalty fee) - 1 (network fee) - 3 (minting fee) = 645
-		assert_eq!(Balances::free_balance(BOB), 645);
+		assert_eq!(Balances::free_balance(BOB), 644);
 
 		assert_noop!(
 			AuctionModule::create_auction(
@@ -1589,17 +1535,17 @@ fn on_finalize_should_work() {
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
 		// BOB's should have 500 - 1 (network reserve fee) - 3 (minting fee) = 496
-		assert_eq!(Balances::free_balance(BOB), 496);
+		assert_eq!(Balances::free_balance(BOB), 495);
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&ALICE, &(0, 0)), Ok(true));
 		// check balances were transferred
-		assert_eq!(Balances::free_balance(ALICE), 99900);
+		assert_eq!(Balances::free_balance(ALICE), 99899);
 		// BOB's initial balance is 500
 		// 100 - 1 (1% of 100 as royalty fee) - 1 (1% of 100 as network fee) - 3 minting fee = 96
 		// 500 + 95 = 595
-		assert_eq!(Balances::free_balance(BOB), 595);
+		assert_eq!(Balances::free_balance(BOB), 594);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// auction item should not in storage
@@ -1618,7 +1564,7 @@ fn on_finalize_with_listing_fee_should_work() {
 		let bidder = RuntimeOrigin::signed(BOB);
 		init_test_nft(owner.clone());
 		// After minting new NFT, it costs 3 unit
-		assert_eq!(Balances::free_balance(ALICE), 99997);
+		assert_eq!(Balances::free_balance(ALICE), 99996);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::NFT(0, 0),
@@ -1632,19 +1578,19 @@ fn on_finalize_with_listing_fee_should_work() {
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
-		// Free balance of Alice is 99997 - 1 = 99996
-		assert_eq!(Balances::free_balance(ALICE), 99996);
+		// Free balance of Alice is 99997 - 1 (minting deposit) - 1 (class strage fee) = 99995
+		assert_eq!(Balances::free_balance(ALICE), 99995);
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&BOB, &(0, 0)), Ok(true));
 		// check balances were transferred
-		// Bob bid 100 for item, his new balance will be 500 - 100
-		assert_eq!(Balances::free_balance(BOB), 400);
+		// Bob bid 100 for item, his new balance will be 500 - 100 - 1
+		assert_eq!(Balances::free_balance(BOB), 399);
 		// Alice only receive 88 for item sold:
-		// cost breakdown 100 - 10 (listing fee) - 1 (1% network fee) - 1 (1% royalty fee)
-		// Free balance of Alice is 99997 + 88 = 100085
-		assert_eq!(Balances::free_balance(ALICE), 100085);
+		// cost breakdown 100 - 10 (listing fee) - 1 (1% network fee) - 1 (1% royalty fee) - 1 unit (class
+		// stroage fee) Free balance of Alice is 99996 + 88 = 100084
+		assert_eq!(Balances::free_balance(ALICE), 100084);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// event was triggered
@@ -1662,7 +1608,7 @@ fn auction_bundle_should_update_new_price_according_new_bid() {
 		init_test_nft(owner.clone());
 
 		// After minting new NFTs, it costs 6 unit
-		assert_eq!(Balances::free_balance(ALICE), 99994);
+		assert_eq!(Balances::free_balance(ALICE), 99992);
 
 		let tokens = vec![(0, 0, 100), (0, 1, 100)];
 		assert_ok!(AuctionModule::create_auction(
@@ -1682,10 +1628,10 @@ fn auction_bundle_should_update_new_price_according_new_bid() {
 		);
 		assert_ok!(AuctionModule::bid(bidder, 0, 300));
 		// Free balance of Alice is 99994 - 1 (network reserve fee)
-		assert_eq!(Balances::free_balance(ALICE), 99993);
+		assert_eq!(Balances::free_balance(ALICE), 99991);
 
 		let tokens_after_bid = vec![(0, 0, 150), (0, 1, 150)];
-		let item_updated_after_bid = AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone()));
+		let _item_updated_after_bid = AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone()));
 		let auction_item = AuctionModule::get_auction_item(0).unwrap();
 
 		assert_eq!(auction_item.item_id, ItemId::Bundle(tokens_after_bid));
@@ -1701,8 +1647,8 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 
-		// After minting new NFTs, it costs 6 unit
-		assert_eq!(Balances::free_balance(ALICE), 99994);
+		// After minting new NFTs, it costs 6 unit + 2 unit for class storage fee
+		assert_eq!(Balances::free_balance(ALICE), 99992);
 
 		let tokens = vec![(0, 0, 80), (0, 1, 120)];
 		assert_ok!(AuctionModule::create_auction(
@@ -1731,20 +1677,20 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 			Some(true)
 		);
 
-		// Free balance of Alice is 99994 - 1 (network reserve fee)
-		assert_eq!(Balances::free_balance(ALICE), 99993);
+		// Free balance of Alice is 99992 - 1 (network reserve fee)
+		assert_eq!(Balances::free_balance(ALICE), 99991);
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 1)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&BOB, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::check_ownership(&BOB, &(0, 1)), Ok(true));
 		// check balances were transferred
 		// Bob bid 400 for item, his new balance will be 500 - 400
-		assert_eq!(Balances::free_balance(BOB), 100);
+		assert_eq!(Balances::free_balance(BOB), 99);
 		// Alice only receive 176 for item solds
 		// Cost breakdown 400 - 4 (royalty) - 4 (1% network fee) - 40 (listing fee) = 352
-		// Free balance of Alice is 99994 + 352 = 100346
-		assert_eq!(Balances::free_balance(ALICE), 100346);
+		// Free balance of Alice is 99992 + 352 = 100344
+		assert_eq!(Balances::free_balance(ALICE), 100344);
 		// event was triggered
 		let event = mock::RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 400));
 		assert_eq!(last_event(), event);
@@ -2067,7 +2013,7 @@ fn accept_offer_should_work() {
 
 		assert_eq!(Offers::<Runtime>::get((0, 0), BOB), None);
 		assert_eq!(Balances::free_balance(BOB), 350);
-		assert_eq!(Balances::free_balance(ALICE), 100147);
+		assert_eq!(Balances::free_balance(ALICE), 100146);
 	});
 }
 
@@ -2106,7 +2052,7 @@ fn withdraw_offer_should_work() {
 fn finalize_auction_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(BOB);
-		let bidder = RuntimeOrigin::signed(ALICE);
+		let _bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -2146,7 +2092,7 @@ fn finalize_auction_should_fail() {
 fn cancel_listing_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(BOB);
-		let bidder = RuntimeOrigin::signed(ALICE);
+		let _bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -2159,7 +2105,7 @@ fn cancel_listing_should_work() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0)
 		));
-		assert_eq!(Balances::free_balance(BOB), 496);
+		assert_eq!(Balances::free_balance(BOB), 495);
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_eq!(
 			AuctionModule::auctions(0),
@@ -2172,7 +2118,7 @@ fn cancel_listing_should_work() {
 
 		run_to_block(2);
 		assert_ok!(AuctionModule::cancel_listing(RuntimeOrigin::signed(BOB), 0));
-		assert_eq!(Balances::free_balance(BOB), 497);
+		assert_eq!(Balances::free_balance(BOB), 496);
 
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		assert_eq!(AuctionModule::auctions(0), None);
@@ -2186,7 +2132,7 @@ fn cancel_listing_should_work() {
 fn cancel_listing_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(BOB);
-		let bidder = RuntimeOrigin::signed(ALICE);
+		let _bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(

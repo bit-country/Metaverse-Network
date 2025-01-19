@@ -1,23 +1,20 @@
-use frame_support::assert_noop;
-use hex_literal::hex;
-use sp_core::{ByteArray, H160, U256};
-use sp_runtime::traits::{AccountIdConversion, Zero};
+use sp_core::{ByteArray, U256};
+use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::Perbill;
 use sp_std::collections::btree_map::BTreeMap;
 
 use precompile_utils::data::{Address, Bytes, EvmDataWriter};
 use precompile_utils::testing::*;
-use primitives::evm::Output;
+
 use primitives::FungibleTokenId;
 
 use crate::mock::*;
 use crate::nft::Action;
-use evm_mapping::AddressMapping as AddressMappingEvm;
+
 use orml_nft::Pallet as NftModule;
 use orml_traits::BasicCurrency;
-use pallet_evm::AddressMapping;
 
-use core_primitives::{Attributes, CollectionType, NftAssetData, NftClassData, NftMetadata, TokenType};
+use core_primitives::{Attributes, CollectionType, NftMetadata, TokenType};
 
 fn precompiles() -> Precompiles<Runtime> {
 	PrecompilesValue::get()
@@ -212,7 +209,7 @@ fn mint_nft_works() {
 #[test]
 fn transfer_nft_works() {
 	ExtBuilder::default()
-		.with_balances(vec![(alice_account_id(), 100000)])
+		.with_balances(vec![(alice_account_id(), 100000), (bob_account_id(), 15000)])
 		.build()
 		.execute_with(|| {
 			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
@@ -306,7 +303,7 @@ fn withdraw_from_class_fund_works() {
 
 			assert_eq!(
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
-				0
+				1
 			);
 		});
 }

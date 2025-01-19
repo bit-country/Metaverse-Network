@@ -1,19 +1,22 @@
 #![cfg(test)]
 
-use frame_support::traits::{EqualPrivilegeOnly, Nothing};
+use frame_support::traits::{Contains, EqualPrivilegeOnly, InstanceFilter, Nothing};
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
+use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
-use sp_core::H256;
-use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_core::crypto::AccountId32;
+use sp_core::{ConstU128, H256};
+use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentifyAccount, Verify};
+use sp_runtime::{traits::IdentityLookup, MultiSignature, Perbill};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
 use primitives::{
-	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId, NftOffer,
+	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId,
 	UndeployedLandBlockId,
 };
+use sp_runtime::BuildStorage;
 
 use crate as auction;
 
@@ -23,14 +26,13 @@ parameter_types! {
 	pub const BlockHashCount: u32 = 256;
 }
 
-pub type AccountId = u128;
+pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 pub type Balance = u128;
 pub type BlockNumber = u64;
 pub type MetaverseId = u64;
+type Signature = MultiSignature;
+type AccountPublic = <Signature as Verify>::Signer;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const NO_METAVERSE_OWNER: AccountId = 3;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
@@ -43,21 +45,18 @@ pub const LAND_UNIT_EXIST: (i32, i32) = (0, 0);
 pub const LAND_UNIT_EXIST_1: (i32, i32) = (1, 1);
 pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
 
-pub const GENERAL_METAVERSE_FUND: AccountId = 102;
-
 pub const UNDEPLOYED_LAND_BLOCK_ID_EXIST: UndeployedLandBlockId = 4;
 pub const UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST: UndeployedLandBlockId = 5;
 
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
@@ -89,11 +88,14 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
-
 pub struct Continuumm;
 
-impl MapTrait<u128> for Continuumm {
+impl MapTrait<AccountId32> for Continuumm {
 	fn transfer_spot(
 		_spot_id: MapSpotId,
 		_from: AccountId,
@@ -105,7 +107,7 @@ impl MapTrait<u128> for Continuumm {
 
 pub struct EstateHandler;
 
-impl Estate<u128> for EstateHandler {
+impl Estate<AccountId32> for EstateHandler {
 	fn transfer_estate(_estate_id: EstateId, _from: &AccountId, _to: &AccountId) -> Result<EstateId, DispatchError> {
 		Ok(1)
 	}
@@ -119,9 +121,9 @@ impl Estate<u128> for EstateHandler {
 	}
 
 	fn transfer_undeployed_land_block(
-		who: &AccountId,
-		to: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
+		_who: &AccountId,
+		_to: &AccountId,
+		_undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
 		Ok(2)
 	}
@@ -143,7 +145,7 @@ impl Estate<u128> for EstateHandler {
 	}
 
 	fn check_undeployed_land_block(
-		owner: &AccountId,
+		_owner: &AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<bool, DispatchError> {
 		match undeployed_land_block_id {
@@ -153,7 +155,7 @@ impl Estate<u128> for EstateHandler {
 		}
 	}
 
-	fn get_total_land_units(estate_id: Option<EstateId>) -> u64 {
+	fn get_total_land_units(_estate_id: Option<EstateId>) -> u64 {
 		100
 	}
 
@@ -161,15 +163,15 @@ impl Estate<u128> for EstateHandler {
 		100
 	}
 
-	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn check_estate_ownership(_owner: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leasor(_leasor: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leased(_estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 }
@@ -183,8 +185,8 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 		new_bid: (AccountId, Balance),
 		_last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
-		// Test with Alice bid
-		if new_bid.0 == ALICE || new_bid.0 == BOB {
+		// Test with [1,32].into() bid
+		if new_bid.0 == [1; 32].into() || new_bid.0 == [2; 32].into() {
 			OnNewBidResult {
 				accept_bid: true,
 				auction_end_change: Change::NoChange,
@@ -243,19 +245,21 @@ parameter_types! {
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
-	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+	fn create_metaverse(_who: &AccountId, _metadata: MetaverseMetadata) -> MetaverseId {
 		1u64
 	}
 
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
-		match *who {
-			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
-			BOB => *metaverse_id == BOB_METAVERSE_ID,
-			_ => false,
+		if who == &AccountId32::new([1; 32]) {
+			*metaverse_id == ALICE_METAVERSE_ID
+		} else if who == &AccountId32::new([2; 32]) {
+			*metaverse_id == BOB_METAVERSE_ID
+		} else {
+			false
 		}
 	}
 
-	fn get_metaverse(_metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
+	fn get_metaverse(_metaverse_id: u64) -> Option<MetaverseInfo<AccountId>> {
 		None
 	}
 
@@ -267,28 +271,28 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		Ok(())
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn get_metaverse_land_class(_metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(15u32)
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn get_metaverse_estate_class(_metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(16u32)
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+	fn get_metaverse_marketplace_listing_fee(_metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
 		Ok(Perbill::from_percent(1u32))
 	}
 
-	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
-		GENERAL_METAVERSE_FUND
+	fn get_metaverse_treasury(_metaverse_id: MetaverseId) -> AccountId {
+		[102; 32].into()
 	}
 
 	fn get_network_treasury() -> AccountId {
-		GENERAL_METAVERSE_FUND
+		[102; 32].into()
 	}
 
 	fn check_if_metaverse_estate(
-		metaverse_id: primitives::MetaverseId,
+		_metaverse_id: primitives::MetaverseId,
 		class_id: &ClassId,
 	) -> Result<bool, DispatchError> {
 		if class_id == &15u32 || class_id == &16u32 {
@@ -302,7 +306,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn is_metaverse_owner(who: &AccountId) -> bool {
-		who != &NO_METAVERSE_OWNER
+		who != &[3; 32].into()
 	}
 }
 
@@ -325,6 +329,7 @@ impl Config for Runtime {
 	type OfferDuration = OfferDuration;
 	type MinimumListingPrice = MinimumListingPrice;
 	type AntiSnipeDuration = AntiSnipeDuration;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -343,7 +348,7 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = Weight::from_ref_time(128);
+	pub MaximumSchedulerWeight: Weight = Weight::from_parts(128, 0);
 }
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -365,6 +370,7 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl pallet_nft::Config for Runtime {
@@ -381,6 +387,9 @@ impl pallet_nft::Config for Runtime {
 	type MiningResourceId = MiningCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = AccountPublic;
 }
 
 parameter_types! {
@@ -404,13 +413,61 @@ impl orml_nft::Config for Runtime {
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+pub enum ProxyType {
+	Any,
+	JustTransfer,
+}
+impl Default for ProxyType {
+	fn default() -> Self {
+		Self::Any
+	}
+}
+impl InstanceFilter<RuntimeCall> for ProxyType {
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		match self {
+			ProxyType::Any => true,
+			ProxyType::JustTransfer => matches!(c, RuntimeCall::Balances(pallet_balances::Call::transfer { .. })),
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == &ProxyType::Any || self == o
+	}
+}
+pub struct BaseFilter;
+impl Contains<RuntimeCall> for BaseFilter {
+	fn contains(c: &RuntimeCall) -> bool {
+		match *c {
+			// Remark is used as a no-op call in the benchmarking
+			RuntimeCall::System(SystemCall::remark { .. }) => true,
+			RuntimeCall::System(_) => false,
+			_ => true,
+		}
+	}
+}
+
+impl pallet_proxy::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ConstU128<1>;
+	type ProxyDepositFactor = ConstU128<1>;
+	type MaxProxies = ConstU32<4>;
+	type WeightInfo = ();
+	type CallHasher = BlakeTwo256;
+	type MaxPending = ConstU32<2>;
+	type AnnouncementDepositBase = ConstU128<1>;
+	type AnnouncementDepositFactor = ConstU128<1>;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
@@ -418,6 +475,7 @@ construct_runtime!(
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		AuctionModule: auction::{Pallet, Call, Storage, Event<T>},
+		Proxy: pallet_proxy
 	}
 );
 pub struct ExtBuilder;
@@ -434,20 +492,20 @@ impl ExtBuilder {
 	}
 
 	pub fn build_with_block_number(self, block_number: u64) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 500), (NO_METAVERSE_OWNER, 500)],
+			balances: vec![([1; 32].into(), 100000), ([2; 32].into(), 500), ([3; 32].into(), 500)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
 			balances: vec![
-				(ALICE, FungibleTokenId::MiningResource(0), 10000),
-				(BOB, FungibleTokenId::MiningResource(0), 5000),
+				([1; 32].into(), FungibleTokenId::MiningResource(0), 10000),
+				([2; 32].into(), FungibleTokenId::MiningResource(0), 5000),
 			],
 		}
 		.assimilate_storage(&mut t)
@@ -481,24 +539,24 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<AccountId, Self::Balance, u64>> {
 		None
 	}
 
-	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+	fn auction_item(_id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
 		None
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<AccountId, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
-	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> frame_support::dispatch::DispatchResult {
+	fn update_auction_item(_id: AuctionId, _item_id: ItemId<Self::Balance>) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
 
 	fn new_auction(
-		_recipient: u128,
+		_recipient: AccountId,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_end: Option<u64>,
@@ -510,7 +568,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_auction_type: AuctionType,
 		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
-		_recipient: u128,
+		_recipient: AccountId,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
@@ -523,17 +581,17 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
-		from: AccountId,
-		id: AuctionId,
-		value: Self::Balance,
+		_from: AccountId,
+		_id: AuctionId,
+		_value: Self::Balance,
 	) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
 
 	fn buy_now_handler(
-		from: AccountId,
-		auction_id: AuctionId,
-		value: Self::Balance,
+		_from: AccountId,
+		_auction_id: AuctionId,
+		_value: Self::Balance,
 	) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
@@ -541,8 +599,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn local_auction_bid_handler(
 		_now: u64,
 		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
+		_new_bid: (AccountId, Self::Balance),
+		_last_bid: Option<(AccountId, Self::Balance)>,
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
@@ -550,7 +608,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
-		_high_bidder: &u128,
+		_high_bidder: &AccountId,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {

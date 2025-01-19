@@ -1,23 +1,21 @@
-use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::traits::Nothing;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight};
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
+use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
+use sp_runtime::BuildStorage;
 use sp_runtime::{
-	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
 	Perbill,
 };
 
 use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
-use primitives::FungibleTokenId::FungibleToken;
+
 use primitives::{Amount, CurrencyId, EstateId, FungibleTokenId, RoundIndex, UndeployedLandBlockId};
 
 use crate as mining;
-use crate::{Config, Module};
+use crate::Config;
 
 use super::*;
 
@@ -49,14 +47,13 @@ parameter_types! {
 }
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
@@ -88,6 +85,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
@@ -137,22 +138,22 @@ parameter_types! {
 pub struct EstateHandler;
 
 impl Estate<u128> for EstateHandler {
-	fn transfer_estate(estate_id: EstateId, from: &u128, to: &u128) -> Result<EstateId, DispatchError> {
+	fn transfer_estate(estate_id: EstateId, _from: &u128, _to: &u128) -> Result<EstateId, DispatchError> {
 		Ok(estate_id)
 	}
 
 	fn transfer_landunit(
 		coordinate: (i32, i32),
-		from: &u128,
-		to: &(u128, primitives::MetaverseId),
+		_from: &u128,
+		_to: &(u128, primitives::MetaverseId),
 	) -> Result<(i32, i32), DispatchError> {
 		Ok(coordinate)
 	}
 
 	fn transfer_undeployed_land_block(
-		who: &AccountId,
-		to: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
+		_who: &AccountId,
+		_to: &AccountId,
+		_undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
 		Ok(2)
 	}
@@ -161,18 +162,18 @@ impl Estate<u128> for EstateHandler {
 		Ok(true)
 	}
 
-	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+	fn check_landunit(_metaverse_id: primitives::MetaverseId, _coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
 	fn check_undeployed_land_block(
-		owner: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
+		_owner: &AccountId,
+		_undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
-	fn get_total_land_units(estate_id: Option<EstateId>) -> u64 {
+	fn get_total_land_units(_estate_id: Option<EstateId>) -> u64 {
 		10
 	}
 
@@ -180,15 +181,15 @@ impl Estate<u128> for EstateHandler {
 		10
 	}
 
-	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn check_estate_ownership(_owner: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leasor(_leasor: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leased(_estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 }
@@ -196,13 +197,14 @@ impl Estate<u128> for EstateHandler {
 pub struct MetaverseStakingHandler;
 
 impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
-	fn update_staking_reward(round: RoundIndex, total_reward: u128) -> sp_runtime::DispatchResult {
+	fn update_staking_reward(_round: RoundIndex, _total_reward: u128) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
 }
 
 parameter_types! {
 	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl Config for Runtime {
@@ -215,6 +217,9 @@ impl Config for Runtime {
 	type MetaverseStakingHandler = MetaverseStakingHandler;
 	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = ();
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
+	type StorageDepositFee = StorageDepositFee;
+	type Currency = Balances;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -226,7 +231,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{ Pallet, Storage, Call, Event<T>},
@@ -244,12 +249,12 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000)],
+			balances: vec![(ALICE, 100000), (BOB, 1000), (TreasuryModuleAccount::get(), 100)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

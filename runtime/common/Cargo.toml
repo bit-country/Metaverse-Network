@@ -5,7 +5,7 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-codec = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ["derive"] }
+codec = { workspace = true }
 serde = { workspace = true, default-features = false, optional = true }
 scale-info = { workspace = true }
 impl-trait-for-tuples = { workspace = true }
@@ -20,6 +20,7 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 sp-io = { workspace = true }
+pallet-proxy = { workspace = true }
 
 # Polkadot & Cumulus pallets
 polkadot-parachain = { workspace = true }
@@ -68,6 +69,8 @@ substrate-wasm-builder = { workspace = true }
 default = ["std"]
 std = [
     "codec/std",
+    "scale-info/std",
+    "num_enum/std",
     "serde",
     "sp-core/std",
     "sp-runtime/std",
@@ -103,4 +106,6 @@ std = [
     "xcm-builder/std",
     "pallet-timestamp/std",
     "pallet-balances/std",
+    "pallet-proxy/std",
 ]
+with-precompile-tests = ["precompile-utils/testing"]

@@ -17,16 +17,17 @@
 
 #![cfg(test)]
 
-use frame_support::pallet_prelude::{GenesisBuild, Hooks};
+use frame_support::pallet_prelude::{DispatchResult, Hooks};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::{traits::IdentityLookup, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait};
-use primitives::FungibleTokenId::FungibleToken;
+
 use primitives::{AuctionId, ClassId, FungibleTokenId};
+use sp_runtime::BuildStorage;
 
 use crate as continuum;
 
@@ -64,14 +65,13 @@ ord_parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
@@ -103,6 +103,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 
 pub struct MockAuctionManager;
@@ -147,11 +151,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		return None;
 	}
 
-	fn update_auction(id: AuctionId, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: AuctionId, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
-	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
+	fn update_auction_item(_id: AuctionId, _item_id: ItemId<Self::Balance>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -180,11 +184,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
-	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+	fn auction_bid_handler(_from: AccountId, _id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 
-	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
+	fn buy_now_handler(_from: AccountId, _auction_id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 
@@ -222,12 +226,13 @@ parameter_types! {
 	pub const SessionDuration: BlockNumber = 10;
 	// Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 10;
+	pub StorageDepositFee: Balance = 1;
 }
 
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
-	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+	fn create_metaverse(_who: &AccountId, _metadata: MetaverseMetadata) -> MetaverseId {
 		1u64
 	}
 
@@ -252,15 +257,15 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		Ok(())
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn get_metaverse_land_class(_metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(15u32)
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn get_metaverse_estate_class(_metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(16u32)
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+	fn get_metaverse_marketplace_listing_fee(_metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
 		Ok(Perbill::from_percent(1u32))
 	}
 
@@ -277,7 +282,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn check_if_metaverse_estate(
-		metaverse_id: primitives::MetaverseId,
+		_metaverse_id: primitives::MetaverseId,
 		class_id: &ClassId,
 	) -> Result<bool, DispatchError> {
 		if class_id == &15u32 || class_id == &16u32 {
@@ -294,7 +299,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 	}
 
-	fn is_metaverse_owner(who: &AccountId) -> bool {
+	fn is_metaverse_owner(_who: &AccountId) -> bool {
 		true
 	}
 }
@@ -309,6 +314,7 @@ impl Config for Runtime {
 	type ContinuumTreasury = ContinuumTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = MetaverseInfoSource;
+	type StorageDepositFee = StorageDepositFee;
 	type WeightInfo = ();
 }
 
@@ -323,7 +329,7 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Continuum: continuum::{Pallet, Call ,Storage, Event<T>},
 	}
@@ -343,8 +349,8 @@ impl ExtBuilder {
 	}
 
 	pub fn build_with_block_number(self, block_number: u64) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {

@@ -17,32 +17,56 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, HasCompact};
-use frame_support::traits::{LockIdentifier, WithdrawReasons};
+use codec::{Encode, HasCompact};
+
 use frame_support::{
-	ensure, log,
+	ensure,
 	pallet_prelude::*,
-	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
+	traits::{Currency, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Saturating};
+use orml_traits::{DataProvider, MultiCurrency, MultiReservableCurrency};
+use sp_core::U256;
+use sp_runtime::traits::{
+	BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating, UniqueSaturatedInto,
+};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	ArithmeticError, DispatchError, Perbill,
+	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{estate::Estate, EstateId};
-use primitives::{AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex};
+
+use primitives::{estate::Estate, EraIndex, EstateId};
+use primitives::{Balance, DomainId, FungibleTokenId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
-//#[cfg(feature = "runtime-benchmarks")]
-//pub mod benchmarking;
+/// The Reward Pool Info.
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct InnovationStakingPoolInfo<Share: HasCompact, Balance: HasCompact, CurrencyId: Ord> {
+	/// Total shares amount
+	pub total_shares: Share,
+	/// Reward infos <reward_currency, (total_reward, total_withdrawn_reward)>
+	pub rewards: BTreeMap<CurrencyId, (Balance, Balance)>,
+}
+
+impl<Share, Balance, CurrencyId> Default for InnovationStakingPoolInfo<Share, Balance, CurrencyId>
+where
+	Share: Default + HasCompact,
+	Balance: HasCompact,
+	CurrencyId: Ord,
+{
+	fn default() -> Self {
+		Self {
+			total_shares: Default::default(),
+			rewards: BTreeMap::new(),
+		}
+	}
+}
 
 #[cfg(test)]
 mod mock;
@@ -54,12 +78,10 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::staking::{Bond, RoundInfo};
-	use primitives::{ClassId, GroupCollectionId, NftId};
+	use primitives::{staking::Bond, ClassId, NftId};
 
 	use super::*;
 
@@ -69,8 +91,8 @@ pub mod pallet {
 	pub struct Pallet<T>(PhantomData<T>);
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
 	pub type TokenId = NftId;
+	pub type WithdrawnRewards<T> = BTreeMap<FungibleTokenId, BalanceOf<T>>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -78,21 +100,21 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The currency type
-		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+		type Currency: LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>
 			+ ReservableCurrency<Self::AccountId>;
 
 		/// Multi-fungible token currency
 		type FungibleTokenCurrency: MultiReservableCurrency<
 			Self::AccountId,
 			CurrencyId = FungibleTokenId,
-			Balance = Balance,
+			Balance = BalanceOf<Self>,
 		>;
 
 		/// NFT handler
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 
 		/// Round handler
-		type RoundHandler: RoundTrait<Self::BlockNumber>;
+		type RoundHandler: RoundTrait<BlockNumberFor<Self>>;
 
 		/// Estate handler
 		type EstateHandler: Estate<Self::AccountId>;
@@ -117,6 +139,9 @@ pub mod pallet {
 		#[pallet::constant]
 		type PowerAmountPerBlock: Get<PowerAmount>;
 
+		// Reward payout account
+		#[pallet::constant]
+		type RewardPayoutAccount: Get<PalletId>;
 		/// Weight info
 		type WeightInfo: WeightInfo;
 	}
@@ -179,6 +204,69 @@ pub mod pallet {
 	#[pallet::getter(fn total_estate_stake)]
 	type TotalEstateStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+	/// Innovation staking info
+	#[pallet::storage]
+	#[pallet::getter(fn get_innovation_staking_info)]
+	pub type InnovationStakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+	/// Total innovation staking locked in this pallet
+	#[pallet::storage]
+	#[pallet::getter(fn total_innovation_staking)]
+	type TotalInnovationStaking<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	/// Record share amount, reward currency and withdrawn reward amount for
+	/// specific `AccountId`
+	///
+	/// storage_map AccountId => (Share, BTreeMap<CurrencyId, Balance>)
+	#[pallet::storage]
+	#[pallet::getter(fn shares_and_withdrawn_rewards)]
+	pub type SharesAndWithdrawnRewards<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, (BalanceOf<T>, WithdrawnRewards<T>), ValueQuery>;
+
+	/// Record reward pool info.
+	///
+	/// StakingRewardPoolInfo
+	#[pallet::storage]
+	#[pallet::getter(fn staking_reward_pool_info)]
+	pub type StakingRewardPoolInfo<T: Config> =
+		StorageValue<_, InnovationStakingPoolInfo<BalanceOf<T>, BalanceOf<T>, FungibleTokenId>, ValueQuery>;
+
+	/// Self-staking exit queue info
+	/// This will keep track of stake exits queue, unstake only allows after 1 round
+	#[pallet::storage]
+	#[pallet::getter(fn innovation_staking_exit_queue)]
+	pub type InnovationStakingExitQueue<T: Config> =
+		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, RoundIndex, BalanceOf<T>, OptionQuery>;
+
+	/// The pending rewards amount accumulated from staking on innovation, pending reward added when
+	/// user claim reward or remove shares
+	///
+	/// PendingRewards: map AccountId => BTreeMap<FungibleTokenId, Balance>
+	#[pallet::storage]
+	#[pallet::getter(fn pending_multi_rewards)]
+	pub type PendingRewardsOfStakingInnovation<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BTreeMap<FungibleTokenId, BalanceOf<T>>, ValueQuery>;
+
+	/// The current era index
+	#[pallet::storage]
+	#[pallet::getter(fn current_era)]
+	pub type CurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
+	/// The block number of last era updated
+	#[pallet::storage]
+	#[pallet::getter(fn last_era_updated_block)]
+	pub type LastEraUpdatedBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+	/// The internal of block number between era.
+	#[pallet::storage]
+	#[pallet::getter(fn update_era_frequency)]
+	pub type UpdateEraFrequency<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+	/// The estimated staking reward rate per era on innovation staking.
+	///
+	/// EstimatedStakingRewardRatePerEra: value: Rate
+	#[pallet::storage]
+	pub type EstimatedStakingRewardPerEra<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -200,6 +288,20 @@ pub mod pallet {
 		SetPowerBalance(T::AccountId, PowerAmount),
 		/// Power conversion request has cancelled [(class_id, token_id), account]
 		CancelPowerConversionRequest((ClassId, TokenId), T::AccountId),
+		/// Innovation Staking [staker, amount]
+		StakedInnovation(T::AccountId, BalanceOf<T>),
+		/// Unstaked from Innovation [staker, amount]
+		UnstakedInnovation(T::AccountId, BalanceOf<T>),
+		/// Claim rewards
+		ClaimRewards(T::AccountId, FungibleTokenId, BalanceOf<T>),
+		/// Current innovation staking era updated
+		CurrentInnovationStakingEraUpdated(EraIndex),
+		/// Innovation Staking Era frequency updated
+		UpdatedInnovationStakingEraFrequency(BlockNumberFor<T>),
+		/// Last innovation staking era updated
+		LastInnovationStakingEraUpdated(BlockNumberFor<T>),
+		/// Estimated reward per era
+		EstimatedRewardPerEraUpdated(BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -252,55 +354,31 @@ pub mod pallet {
 		EstateExitQueueDoesNotExit,
 		/// Stake amount exceed estate max amount
 		StakeAmountExceedMaximumAmount,
+		/// Invalid era set up config
+		InvalidLastEraUpdatedBlock,
+		/// Unexpected error
+		Unexpected,
+		/// Reward pool does not exist
+		RewardPoolDoesNotExist,
+		/// Invalid reward set up
+		InvalidEstimatedRewardSetup,
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+			let era_number = Self::get_era_index(<frame_system::Pallet<T>>::block_number());
+
+			if !era_number.is_zero() {
+				let _ = Self::update_current_era(era_number).map_err(|err| err).ok();
+			}
+
+			T::WeightInfo::stake_b()
+		}
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Set bit power exchange rate
-		///
-		/// The dispatch origin for this call must be _Root_.
-		///
-		/// `rate`: exchange rate of bit to power. input is BIT price per power
-		///
-		/// Emit `BitPowerExchangeRateUpdated` event if successful
-		#[pallet::weight(T::WeightInfo::set_bit_power_exchange_rate())]
-		#[transactional]
-		pub fn set_bit_power_exchange_rate(origin: OriginFor<T>, rate: Balance) -> DispatchResultWithPostInfo {
-			// Only root can authorize
-			ensure_root(origin)?;
-
-			BitPowerExchangeRate::<T>::set(rate);
-
-			Self::deposit_event(Event::<T>::BitPowerExchangeRateUpdated(rate));
-
-			Ok(().into())
-		}
-
-		/// Set power balance for specific NFT
-		///
-		/// The dispatch origin for this call must be _Root_.
-		///
-		/// `beneficiary`: NFT account that receives power
-		/// `amount`: amount of power
-		///
-		/// Emit `SetPowerBalance` event if successful
-		#[pallet::weight(T::WeightInfo::set_power_balance())]
-		#[transactional]
-		pub fn set_power_balance(
-			origin: OriginFor<T>,
-			beneficiary: (ClassId, TokenId),
-			amount: PowerAmount,
-		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
-
-			let account_id = T::EconomyTreasury::get().into_sub_account_truncating(beneficiary);
-			PowerBalance::<T>::insert(&account_id, amount);
-
-			Self::deposit_event(Event::<T>::SetPowerBalance(account_id, amount));
-
-			Ok(().into())
-		}
-
 		/// Stake native token to staking ledger to receive build material every round
 		///
 		/// The dispatch origin for this call must be _Signed_.
@@ -338,7 +416,7 @@ pub mod pallet {
 						Error::<T>::ExitQueueAlreadyScheduled
 					);
 
-					let mut staked_balance = StakingInfo::<T>::get(&who);
+					let staked_balance = StakingInfo::<T>::get(&who);
 					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
@@ -412,6 +490,160 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Stake native token to innovation staking ledger to receive reward and voting points
+		/// every round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `amount`: the stake amount
+		///
+		/// Emit `SelfStakedToEconomy101` event or `EstateStakedToEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::stake_on_innovation())]
+		#[transactional]
+		pub fn stake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// Check if user has enough balance for staking
+			ensure!(
+				T::Currency::free_balance(&who) >= amount,
+				Error::<T>::InsufficientBalanceForStaking
+			);
+
+			ensure!(
+				!amount.is_zero() || amount >= T::MinimumStake::get(),
+				Error::<T>::StakeBelowMinimum
+			);
+
+			let current_round = T::RoundHandler::get_current_round_info();
+
+			// Check if user already in exit queue
+			ensure!(
+				!InnovationStakingExitQueue::<T>::contains_key(&who, current_round.current),
+				Error::<T>::ExitQueueAlreadyScheduled
+			);
+
+			let staked_balance = InnovationStakingInfo::<T>::get(&who);
+			let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+
+			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+
+			T::Currency::reserve(&who, amount)?;
+
+			InnovationStakingInfo::<T>::insert(&who, total);
+
+			let new_total_staked = TotalInnovationStaking::<T>::get().saturating_add(amount);
+			<TotalInnovationStaking<T>>::put(new_total_staked);
+
+			Self::add_share(&who, amount);
+
+			Self::deposit_event(Event::StakedInnovation(who, amount));
+
+			Ok(())
+		}
+
+		/// Unstake native token to innovation staking ledger to receive reward and voting points
+		/// every round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `amount`: the unstake amount
+		///
+		/// Emit `UnstakedInnovation` event if successful
+		#[pallet::weight(T::WeightInfo::unstake_on_innovation())]
+		#[transactional]
+		pub fn unstake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			let staked_balance = InnovationStakingInfo::<T>::get(&who);
+			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+
+			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+
+			let amount_to_unstake = if remaining < T::MinimumStake::get() {
+				// Remaining amount below minimum, remove all staked amount
+				staked_balance
+			} else {
+				amount
+			};
+
+			let current_round = T::RoundHandler::get_current_round_info();
+			let next_round = current_round.current.saturating_add(28u32);
+
+			// Check if user already in exit queue of the current
+			ensure!(
+				!InnovationStakingExitQueue::<T>::contains_key(&who, next_round),
+				Error::<T>::ExitQueueAlreadyScheduled
+			);
+
+			// This exit queue will be executed by exit_staking extrinsics to unreserved token
+			InnovationStakingExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
+
+			// Update staking info of user immediately
+			// Remove staking info
+			if amount_to_unstake == staked_balance {
+				InnovationStakingInfo::<T>::remove(&who);
+			} else {
+				InnovationStakingInfo::<T>::insert(&who, remaining);
+			}
+
+			let new_total_staked = TotalInnovationStaking::<T>::get().saturating_sub(amount_to_unstake);
+			<TotalInnovationStaking<T>>::put(new_total_staked);
+
+			Self::remove_share(&who, amount_to_unstake);
+
+			Self::deposit_event(Event::UnstakedInnovation(who, amount));
+			Ok(())
+		}
+
+		/// Claim reward from innovation staking ledger to receive reward and voting points
+		/// every round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		///
+		/// Emit `ClaimRewards` event if successful
+		#[pallet::weight(T::WeightInfo::claim_reward())]
+		#[transactional]
+		pub fn claim_reward(origin: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			Self::claim_rewards(&who);
+
+			PendingRewardsOfStakingInnovation::<T>::mutate_exists(&who, |maybe_pending_multi_rewards| {
+				if let Some(pending_multi_rewards) = maybe_pending_multi_rewards {
+					for (currency_id, pending_reward) in pending_multi_rewards.iter_mut() {
+						if pending_reward.is_zero() {
+							continue;
+						}
+
+						let payout_amount = pending_reward.clone();
+
+						match Self::distribute_reward(&who, *currency_id, payout_amount) {
+							Ok(_) => {
+								// update state
+								*pending_reward = Zero::zero();
+
+								Self::deposit_event(Event::ClaimRewards(
+									who.clone(),
+									FungibleTokenId::NativeToken(0),
+									payout_amount,
+								));
+							}
+							Err(e) => {
+								log::error!(
+									target: "economy",
+									"staking_payout_reward: failed to payout {:?} to {:?} to {:?}",
+									pending_reward, who, e
+								);
+							}
+						}
+					}
+				}
+			});
+
+			Ok(())
+		}
+
 		/// Unstake native token from staking ledger. The unstaked amount able to redeem from the
 		/// next round
 		///
@@ -440,7 +672,7 @@ pub mod pallet {
 
 			match estate {
 				None => {
-					let mut staked_balance = StakingInfo::<T>::get(&who);
+					let staked_balance = StakingInfo::<T>::get(&who);
 					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
 					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
@@ -672,7 +904,7 @@ pub mod pallet {
 
 			match estate {
 				None => {
-					let mut staked_balance = StakingInfo::<T>::get(&who);
+					let staked_balance = StakingInfo::<T>::get(&who);
 					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
 					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
@@ -771,7 +1003,7 @@ pub mod pallet {
 			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountIsZero);
 
 			// Update staking info
-			let mut staked_reserved_balance = T::Currency::reserved_balance(&who);
+			let staked_reserved_balance = T::Currency::reserved_balance(&who);
 			ensure!(
 				amount <= staked_reserved_balance,
 				Error::<T>::UnstakeAmountExceedStakedAmount
@@ -781,10 +1013,44 @@ pub mod pallet {
 
 			Ok(().into())
 		}
-	}
 
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+		/// This function only for governance origin to execute when starting the protocol or
+		/// changes of era duration.
+		#[pallet::weight(< T as Config >::WeightInfo::stake_b())]
+		pub fn update_era_config(
+			origin: OriginFor<T>,
+			last_era_updated_block: Option<BlockNumberFor<T>>,
+			frequency: Option<BlockNumberFor<T>>,
+			estimated_reward_rate_per_era: Option<BalanceOf<T>>,
+		) -> DispatchResult {
+			let _ = ensure_root(origin)?;
+
+			if let Some(change) = frequency {
+				UpdateEraFrequency::<T>::put(change);
+				Self::deposit_event(Event::<T>::UpdatedInnovationStakingEraFrequency(change));
+			}
+
+			if let Some(change) = last_era_updated_block {
+				let update_era_frequency = UpdateEraFrequency::<T>::get();
+				let current_block = <frame_system::Pallet<T>>::block_number();
+				if !update_era_frequency.is_zero() {
+					ensure!(
+						change > current_block.saturating_sub(update_era_frequency) && change <= current_block,
+						Error::<T>::InvalidLastEraUpdatedBlock
+					);
+
+					LastEraUpdatedBlock::<T>::put(change);
+					Self::deposit_event(Event::<T>::LastInnovationStakingEraUpdated(change));
+				}
+			}
+
+			if let Some(reward_rate_per_era) = estimated_reward_rate_per_era {
+				EstimatedStakingRewardPerEra::<T>::put(reward_rate_per_era);
+				Self::deposit_event(Event::<T>::EstimatedRewardPerEraUpdated(reward_rate_per_era));
+			}
+			Ok(())
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -795,7 +1061,7 @@ impl<T: Config> Pallet<T> {
 	pub fn convert_power_to_bit(power_amount: Balance, commission: Perbill) -> (Balance, Balance) {
 		let rate = Self::get_bit_power_exchange_rate();
 
-		let mut bit_required = power_amount
+		let bit_required = power_amount
 			.checked_mul(rate)
 			.ok_or(ArithmeticError::Overflow)
 			.unwrap_or(Zero::zero());
@@ -806,12 +1072,10 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
-	fn do_burn(who: &T::AccountId, amount: Balance) -> DispatchResult {
+	fn do_burn(_who: &T::AccountId, amount: Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}
-
-		T::FungibleTokenCurrency::withdraw(T::MiningCurrencyId::get(), who, amount);
 
 		Self::deposit_event(Event::<T>::MiningResourceBurned(amount));
 
@@ -829,7 +1093,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn get_target_execution_order(power_amount: PowerAmount) -> Result<T::BlockNumber, DispatchError> {
+	fn get_target_execution_order(power_amount: PowerAmount) -> Result<BlockNumberFor<T>, DispatchError> {
 		let current_block_number = <frame_system::Pallet<T>>::current_block_number();
 		let target_block = if power_amount <= T::PowerAmountPerBlock::get() {
 			let target_b = current_block_number
@@ -842,7 +1106,7 @@ impl<T: Config> Pallet<T> {
 				.ok_or(ArithmeticError::Overflow)?;
 
 			let target_b = current_block_number
-				.checked_add(&TryInto::<T::BlockNumber>::try_into(block_required).unwrap_or_default())
+				.checked_add(&TryInto::<BlockNumberFor<T>>::try_into(block_required).unwrap_or_default())
 				.ok_or(ArithmeticError::Overflow)?;
 			target_b
 		};
@@ -850,9 +1114,293 @@ impl<T: Config> Pallet<T> {
 		Ok(target_block)
 	}
 
-	fn check_target_execution(target: T::BlockNumber) -> bool {
+	fn check_target_execution(target: BlockNumberFor<T>) -> bool {
 		let current_block_number = <frame_system::Pallet<T>>::current_block_number();
 
 		current_block_number >= target
+	}
+
+	pub fn add_share(who: &T::AccountId, add_amount: BalanceOf<T>) {
+		if add_amount.is_zero() {
+			return;
+		}
+
+		StakingRewardPoolInfo::<T>::mutate(|pool_info| {
+			let initial_total_shares = pool_info.total_shares;
+			pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
+
+			let mut withdrawn_inflation = Vec::<(FungibleTokenId, BalanceOf<T>)>::new();
+
+			pool_info
+				.rewards
+				.iter_mut()
+				.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
+					let reward_inflation = if initial_total_shares.is_zero() {
+						Zero::zero()
+					} else {
+						U256::from(add_amount.to_owned().saturated_into::<u128>())
+							.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
+							.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
+							.unwrap_or_default()
+							.as_u128()
+							.saturated_into()
+					};
+					*total_reward = total_reward.saturating_add(reward_inflation);
+					*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
+
+					withdrawn_inflation.push((*reward_currency, reward_inflation));
+				});
+
+			SharesAndWithdrawnRewards::<T>::mutate(who, |(share, withdrawn_rewards)| {
+				*share = share.saturating_add(add_amount);
+				// update withdrawn inflation for each reward currency
+				withdrawn_inflation
+					.into_iter()
+					.for_each(|(reward_currency, reward_inflation)| {
+						withdrawn_rewards
+							.entry(reward_currency)
+							.and_modify(|withdrawn_reward| {
+								*withdrawn_reward = withdrawn_reward.saturating_add(reward_inflation);
+							})
+							.or_insert(reward_inflation);
+					});
+			});
+		});
+	}
+
+	pub fn remove_share(who: &T::AccountId, remove_amount: BalanceOf<T>) {
+		if remove_amount.is_zero() {
+			return;
+		}
+
+		// claim rewards firstly
+		Self::claim_rewards(who);
+
+		SharesAndWithdrawnRewards::<T>::mutate_exists(who, |share_info| {
+			if let Some((mut share, mut withdrawn_rewards)) = share_info.take() {
+				let remove_amount = remove_amount.min(share);
+
+				if remove_amount.is_zero() {
+					return;
+				}
+
+				StakingRewardPoolInfo::<T>::mutate_exists(|maybe_pool_info| {
+					if let Some(mut pool_info) = maybe_pool_info.take() {
+						let removing_share = U256::from(remove_amount.saturated_into::<u128>());
+
+						pool_info.total_shares = pool_info.total_shares.saturating_sub(remove_amount);
+
+						// update withdrawn rewards for each reward currency
+						withdrawn_rewards
+							.iter_mut()
+							.for_each(|(reward_currency, withdrawn_reward)| {
+								let withdrawn_reward_to_remove: BalanceOf<T> = removing_share
+									.saturating_mul(withdrawn_reward.to_owned().saturated_into::<u128>().into())
+									.checked_div(share.saturated_into::<u128>().into())
+									.unwrap_or_default()
+									.as_u128()
+									.saturated_into();
+
+								if let Some((total_reward, total_withdrawn_reward)) =
+									pool_info.rewards.get_mut(reward_currency)
+								{
+									*total_reward = total_reward.saturating_sub(withdrawn_reward_to_remove);
+									*total_withdrawn_reward =
+										total_withdrawn_reward.saturating_sub(withdrawn_reward_to_remove);
+
+									// remove if all reward is withdrawn
+									if total_reward.is_zero() {
+										pool_info.rewards.remove(reward_currency);
+									}
+								}
+								*withdrawn_reward = withdrawn_reward.saturating_sub(withdrawn_reward_to_remove);
+							});
+
+						if !pool_info.total_shares.is_zero() {
+							*maybe_pool_info = Some(pool_info);
+						}
+					}
+				});
+
+				share = share.saturating_sub(remove_amount);
+				if !share.is_zero() {
+					*share_info = Some((share, withdrawn_rewards));
+				}
+			}
+		});
+	}
+
+	pub fn claim_rewards(who: &T::AccountId) {
+		SharesAndWithdrawnRewards::<T>::mutate_exists(who, |maybe_share_withdrawn| {
+			if let Some((share, withdrawn_rewards)) = maybe_share_withdrawn {
+				if share.is_zero() {
+					return;
+				}
+
+				StakingRewardPoolInfo::<T>::mutate_exists(|maybe_pool_info| {
+					if let Some(pool_info) = maybe_pool_info {
+						let total_shares = U256::from(pool_info.total_shares.to_owned().saturated_into::<u128>());
+						pool_info.rewards.iter_mut().for_each(
+							|(reward_currency, (total_reward, total_withdrawn_reward))| {
+								Self::claim_one(
+									withdrawn_rewards,
+									*reward_currency,
+									share.to_owned(),
+									total_reward.to_owned(),
+									total_shares,
+									total_withdrawn_reward,
+									who,
+								);
+							},
+						);
+					}
+				});
+			}
+		});
+	}
+
+	#[allow(clippy::too_many_arguments)] // just we need to have all these to do the stuff
+	fn claim_one(
+		withdrawn_rewards: &mut BTreeMap<FungibleTokenId, BalanceOf<T>>,
+		reward_currency: FungibleTokenId,
+		share: BalanceOf<T>,
+		total_reward: BalanceOf<T>,
+		total_shares: U256,
+		total_withdrawn_reward: &mut BalanceOf<T>,
+		who: &T::AccountId,
+	) {
+		let withdrawn_reward = withdrawn_rewards.get(&reward_currency).copied().unwrap_or_default();
+		let reward_to_withdraw = Self::reward_to_withdraw(
+			share,
+			total_reward,
+			total_shares,
+			withdrawn_reward,
+			total_withdrawn_reward.to_owned(),
+		);
+		if !reward_to_withdraw.is_zero() {
+			*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
+			withdrawn_rewards.insert(reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
+
+			// pay reward to `who`
+			Self::reward_payout(who, reward_currency, reward_to_withdraw);
+		}
+	}
+
+	fn reward_to_withdraw(
+		share: BalanceOf<T>,
+		total_reward: BalanceOf<T>,
+		total_shares: U256,
+		withdrawn_reward: BalanceOf<T>,
+		total_withdrawn_reward: BalanceOf<T>,
+	) -> BalanceOf<T> {
+		let total_reward_proportion: BalanceOf<T> = U256::from(share.saturated_into::<u128>())
+			.saturating_mul(U256::from(total_reward.saturated_into::<u128>()))
+			.checked_div(total_shares)
+			.unwrap_or_default()
+			.as_u128()
+			.unique_saturated_into();
+		total_reward_proportion
+			.saturating_sub(withdrawn_reward)
+			.min(total_reward.saturating_sub(total_withdrawn_reward))
+	}
+
+	fn reward_payout(who: &T::AccountId, currency_id: FungibleTokenId, payout_amount: BalanceOf<T>) {
+		if payout_amount.is_zero() {
+			return;
+		}
+		PendingRewardsOfStakingInnovation::<T>::mutate(who, |rewards| {
+			rewards
+				.entry(currency_id)
+				.and_modify(|current| *current = current.saturating_add(payout_amount))
+				.or_insert(payout_amount);
+		});
+	}
+
+	/// Ensure atomic
+	#[transactional]
+	fn distribute_reward(
+		who: &T::AccountId,
+		reward_currency_id: FungibleTokenId,
+		payout_amount: BalanceOf<T>,
+	) -> DispatchResult {
+		T::FungibleTokenCurrency::transfer(
+			reward_currency_id,
+			&Self::get_reward_payout_account_id(),
+			who,
+			payout_amount,
+		)?;
+		Ok(())
+	}
+
+	pub fn get_reward_payout_account_id() -> T::AccountId {
+		T::RewardPayoutAccount::get().into_account_truncating()
+	}
+
+	pub fn get_era_index(block_number: BlockNumberFor<T>) -> EraIndex {
+		block_number
+			.checked_sub(&Self::last_era_updated_block())
+			.and_then(|n| n.checked_div(&Self::update_era_frequency()))
+			.and_then(|n| TryInto::<EraIndex>::try_into(n).ok())
+			.unwrap_or_else(Zero::zero)
+	}
+
+	#[transactional]
+	pub fn update_current_era(era_index: EraIndex) -> DispatchResult {
+		let previous_era = Self::current_era();
+		let new_era = previous_era.saturating_add(era_index);
+
+		Self::handle_reward_distribution_to_reward_pool_every_era(previous_era, new_era.clone())?;
+		CurrentEra::<T>::put(new_era.clone());
+		LastEraUpdatedBlock::<T>::put(<frame_system::Pallet<T>>::block_number());
+
+		Self::deposit_event(Event::<T>::CurrentInnovationStakingEraUpdated(new_era.clone()));
+		Ok(())
+	}
+
+	fn handle_reward_distribution_to_reward_pool_every_era(
+		previous_era: EraIndex,
+		new_era: EraIndex,
+	) -> DispatchResult {
+		let era_changes = new_era.saturating_sub(previous_era);
+		ensure!(!era_changes.is_zero(), Error::<T>::Unexpected);
+		// Get reward per era that set up Governance
+		let reward_per_era = EstimatedStakingRewardPerEra::<T>::get();
+		// Get reward holding account
+		let reward_holding_origin = T::RewardPayoutAccount::get().into_account_truncating();
+		let reward_holding_balance = T::Currency::free_balance(&reward_holding_origin);
+
+		if reward_holding_balance.is_zero() {
+			// Ignore if reward distributor balance is zero
+			return Ok(());
+		}
+
+		let total_reward = reward_per_era.saturating_mul(era_changes.into());
+		let mut amount_to_send = total_reward.clone();
+		// Make sure user distributor account has enough balance
+		if amount_to_send > reward_holding_balance {
+			amount_to_send = reward_holding_balance
+		}
+
+		Self::accumulate_reward(FungibleTokenId::NativeToken(0), amount_to_send)?;
+		Ok(())
+	}
+
+	pub fn accumulate_reward(reward_currency: FungibleTokenId, reward_increment: BalanceOf<T>) -> DispatchResult {
+		if reward_increment.is_zero() {
+			return Ok(());
+		}
+		StakingRewardPoolInfo::<T>::mutate_exists(|maybe_pool_info| -> DispatchResult {
+			let pool_info = maybe_pool_info.as_mut().ok_or(Error::<T>::RewardPoolDoesNotExist)?;
+
+			pool_info
+				.rewards
+				.entry(reward_currency)
+				.and_modify(|(total_reward, _)| {
+					*total_reward = total_reward.saturating_add(reward_increment);
+				})
+				.or_insert((reward_increment, Zero::zero()));
+
+			Ok(())
+		})
 	}
 }

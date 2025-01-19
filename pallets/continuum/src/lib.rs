@@ -46,18 +46,15 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	dispatch::DispatchResult,
-	ensure, log,
+	ensure,
+	traits::ExistenceRequirement,
 	traits::{Currency, Get, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
-use frame_system::{ensure_root, ensure_signed};
+use frame_system::{ensure_root, ensure_signed, pallet_prelude::BlockNumberFor};
 use scale_info::TypeInfo;
-use sp_runtime::traits::CheckedAdd;
-use sp_runtime::{
-	traits::{AccountIdConversion, One, Zero},
-	DispatchError, Perbill, RuntimeDebug,
-};
+
+use sp_runtime::{traits::AccountIdConversion, DispatchError, Perbill, RuntimeDebug};
 use sp_std::vec;
 use sp_std::vec::Vec;
 
@@ -109,10 +106,8 @@ pub struct AuctionSlot<BlockNumber, AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::ExistenceRequirement;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::OriginFor;
-	use sp_arithmetic::traits::UniqueSaturatedInto;
 
 	use core_primitives::TokenType;
 	use primitives::{AuctionId, MapSpotId};
@@ -131,27 +126,33 @@ pub mod pallet {
 		/// How long the new auction slot will be released. If set to zero, no new auctions are
 		/// generated
 		#[pallet::constant]
-		type SessionDuration: Get<Self::BlockNumber>;
+		type SessionDuration: Get<BlockNumberFor<Self>>;
 		/// Auction Slot Chilling Duration
 		/// How long the participates in the New Auction Slots will get confirmed by neighbours
 		#[pallet::constant]
-		type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
+		type SpotAuctionChillingDuration: Get<BlockNumberFor<Self>>;
 		/// Emergency shutdown origin which allow cancellation in an emergency
 		type EmergencyOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber, Balance = BalanceOf<Self>>
+		type AuctionHandler: Auction<Self::AccountId, BlockNumberFor<Self>, Balance = BalanceOf<Self>>
 			+ CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Auction duration
 		#[pallet::constant]
-		type AuctionDuration: Get<Self::BlockNumber>;
+		type AuctionDuration: Get<BlockNumberFor<Self>>;
 		/// Continuum Treasury
 		#[pallet::constant]
 		type ContinuumTreasury: Get<PalletId>;
 		/// Currency
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 		/// Source of Metaverse Network Info
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
 	}
@@ -210,15 +211,15 @@ pub mod pallet {
 		/// Emergency shutdown is on
 		ContinuumEmergencyShutdownEnabled(),
 		/// Start new referendum
-		NewContinuumReferendumStarted(T::BlockNumber, SpotId),
+		NewContinuumReferendumStarted(BlockNumberFor<T>, SpotId),
 		/// Start new good neighbourhood protocol round
-		NewContinuumNeighbourHoodProtocolStarted(T::BlockNumber, SpotId),
+		NewContinuumNeighbourHoodProtocolStarted(BlockNumberFor<T>, SpotId),
 		/// Spot transferred
 		ContinuumSpotTransferred(T::AccountId, T::AccountId, MapSpotId),
 		/// New max auction slot set
 		NewMaxAuctionSlotSet(u8),
 		/// Rotated new auction slot
-		NewAuctionSlotRotated(T::BlockNumber),
+		NewAuctionSlotRotated(BlockNumberFor<T>),
 		/// Finalize vote
 		FinalizedVote(SpotId),
 		/// New Map Spot issued
@@ -313,7 +314,7 @@ pub mod pallet {
 			spot_id: MapSpotId,
 			auction_type: AuctionType,
 			value: BalanceOf<T>,
-			end_time: T::BlockNumber,
+			end_time: BlockNumberFor<T>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -432,11 +433,35 @@ pub mod pallet {
 				.get_map_spot_detail()
 				.ok_or(Error::<T>::InvalidSpotAuction)?;
 
+			/* // Refund storage fee to the previous bidder (if exist)
+			match T::AuctionHandler::auction_info(auction_id) {
+				Some(auction_info) => match auction_info.bid {
+					Some(last_bid) => {
+						<T as Config>::Currency::transfer(
+							&Self::account_id(),
+							&last_bid.0,
+							T::StorageDepositFee::get(),
+							ExistenceRequirement::KeepAlive,
+						)?;
+					}
+					None => {}
+				},
+				None => {}
+			}
+			*/
 			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
-			T::AuctionHandler::auction_bid_handler(sender, auction_id, value)?;
+			T::AuctionHandler::auction_bid_handler(sender.clone(), auction_id, value)?;
 
 			// Remove leading bid of this spot
 			MetaverseLeadingBid::<T>::remove_prefix(spot_detail.0, None);
+
+			// Charge storage few to the current bidder
+			<T as Config>::Currency::transfer(
+				&sender,
+				&Self::account_id(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			// Add metaverse leading bid
 			MetaverseLeadingBid::<T>::insert(spot_detail.0, metaverse_id, ());
@@ -502,13 +527,21 @@ impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
 			let treasury = Self::account_id();
 			ensure!(from == treasury, Error::<T>::NoPermission);
 
-			let mut spot = maybe_spot.as_mut().ok_or(Error::<T>::MapSpotNotFound)?;
+			let spot = maybe_spot.as_mut().ok_or(Error::<T>::MapSpotNotFound)?;
 			spot.owner = to.clone().0;
 			spot.metaverse_id = Some(to.1);
 
-			Self::deposit_event(Event::<T>::ContinuumSpotTransferred(from, to.0, spot_id));
+			Self::deposit_event(Event::<T>::ContinuumSpotTransferred(from, to.0.clone(), spot_id));
 			MetaverseMap::<T>::insert(to.1, spot_id);
 			MetaverseLeadingBid::<T>::remove_prefix(spot_id, None);
+			/* // Storage fee refund
+			<T as Config>::Currency::transfer(
+				&treasury,
+				&to.0,
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+			*/
 			Ok(spot_id)
 		})
 	}

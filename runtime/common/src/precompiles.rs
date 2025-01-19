@@ -1,4 +1,4 @@
-use pallet_evm::{ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet};
+use pallet_evm::{IsPrecompileResult, Precompile, PrecompileHandle, PrecompileResult, PrecompileSet};
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
 use pallet_evm_precompile_dispatch::Dispatch;
@@ -78,12 +78,15 @@ where
 		}
 	}
 
-	fn is_precompile(&self, address: H160) -> bool {
+	fn is_precompile(&self, _address: H160, _gas: u64) -> IsPrecompileResult {
 		//		sp_std::vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1025, 1026, 1027, 400]
 		//			.into_iter()
 		//			.map(hash)
 		//			.any(|x| x == address)
-		true
+		IsPrecompileResult::Answer {
+			is_precompile: true,
+			extra_cost: 0,
+		}
 	}
 }
 

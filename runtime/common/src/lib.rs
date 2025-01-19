@@ -16,22 +16,17 @@
 // limitations under the License.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
-use cumulus_pallet_parachain_system::CheckAssociatedRelayNumber;
 use frame_support::{
 	traits::Get,
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
 use orml_traits::currency::MutationHooks;
-use polkadot_parachain::primitives::RelayChainBlockNumber;
+
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::prelude::*;
 use xcm_builder::TakeRevenue;
-use xcm_executor::{
-	traits::{DropAssets, WeightTrader},
-	Assets,
-};
+use xcm_executor::{traits::WeightTrader, Assets};
 
 use primitives::BuyWeightRate;
 
@@ -40,9 +35,11 @@ pub mod nft;
 pub mod precompiles;
 
 #[cfg(test)]
+#[cfg(feature = "with-precompile-tests")]
 mod mock;
 
 #[cfg(test)]
+#[cfg(feature = "with-precompile-tests")]
 mod tests;
 /// Simple fee calculator that requires payment in a single fungible at a fixed rate.
 ///
@@ -61,7 +58,7 @@ pub struct FixedRateOfAsset<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRa
 impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for FixedRateOfAsset<FixedRate, R, M> {
 	fn new() -> Self {
 		Self {
-			weight: Weight::from_ref_time(0),
+			weight: Weight::from_parts(0, 0),
 			amount: 0,
 			ratio: Default::default(),
 			multi_location: None,
@@ -69,7 +66,12 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for Fi
 		}
 	}
 
-	fn buy_weight(&mut self, weight: Weight, payment: Assets) -> Result<Assets, XcmError> {
+	fn buy_weight(
+		&mut self,
+		weight: Weight,
+		payment: Assets,
+		_context: &xcm::v3::XcmContext,
+	) -> Result<Assets, XcmError> {
 		log::trace!(target: "xcm::weight", "buy_weight weight: {:?}, payment: {:?}", weight, payment);
 
 		// only support first fungible assets now.
@@ -113,7 +115,7 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for Fi
 		Err(XcmError::TooExpensive)
 	}
 
-	fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
+	fn refund_weight(&mut self, weight: Weight, _context: &xcm::v3::XcmContext) -> Option<MultiAsset> {
 		log::trace!(
 			target: "xcm::weight", "refund_weight weight: {:?}, weight: {:?}, amount: {:?}, ratio: {:?}, multi_location: {:?}",
 			weight, self.weight, self.amount, self.ratio, self.multi_location

@@ -1,10 +1,8 @@
 use frame_support::{assert_noop, assert_ok};
-use sp_core::blake2_256;
-use sp_runtime::traits::BadOrigin;
-use sp_runtime::{AccountId32, Perbill};
-use sp_std::vec::Vec;
 
-use mock::{RuntimeEvent, *};
+use sp_runtime::Perbill;
+
+use mock::*;
 use primitives::Balance;
 
 // Unit testing for metaverse currency, metaverse treasury
@@ -55,7 +53,7 @@ fn burn_mining_resource_should_work() {
 
 		assert_eq!(get_mining_balance(), 1000);
 
-		let event = mock::RuntimeEvent::MiningModule(crate::Event::MiningResourceMintedTo(BOB, 1000));
+		let _event = mock::RuntimeEvent::MiningModule(crate::Event::MiningResourceMintedTo(BOB, 1000));
 
 		assert_ok!(MiningModule::burn(origin, BOB, 300));
 		assert_eq!(get_mining_balance(), 700);
@@ -183,5 +181,15 @@ fn update_mining_config_should_work() {
 		let event = mock::RuntimeEvent::MiningModule(crate::Event::MiningConfigUpdated(1, mining_config));
 
 		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+fn adding_and_removing_mining_origin_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MiningModule::add_minting_origin(RuntimeOrigin::signed(ALICE), BOB));
+		assert_eq!(Balances::free_balance(BOB), 999);
+		assert_ok!(MiningModule::remove_minting_origin(RuntimeOrigin::signed(ALICE), BOB));
+		assert_eq!(Balances::free_balance(BOB), 1000);
 	});
 }

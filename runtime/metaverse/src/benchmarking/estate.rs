@@ -230,7 +230,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
-		issue_new_undeployed_land_block(5)?;
+		set_metaverse_treasury_initial_balance();
+		issue_new_undeployed_land_block(caller, 5)?;
 	}: _(RawOrigin::Root, Default::default())
 	verify {
 		let issued_undeployed_land_block = Estate::get_undeployed_land_block(0);
@@ -252,7 +253,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
-		issue_new_undeployed_land_block(5)?;
+		set_metaverse_treasury_initial_balance();
+		issue_new_undeployed_land_block(caller, 5)?;
 		Estate::freeze_undeployed_land_blocks(RawOrigin::Root.into(), Default::default());
 	}: _(RawOrigin::Root, Default::default())
 	verify {
@@ -277,7 +279,7 @@ runtime_benchmarks! {
 
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
@@ -302,7 +304,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
 		Estate::approve_undeployed_land_blocks(RawOrigin::Signed(caller.clone()).into(), target.clone(), Default::default());
@@ -329,7 +331,7 @@ runtime_benchmarks! {
 
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::Transferable);
@@ -498,7 +500,11 @@ runtime_benchmarks! {
 			max: 100_000_000,
 		};
 		// Pre issue 5 land blocks x 100 land units
-		issue_new_undeployed_land_block(5)?;
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+		set_metaverse_treasury_initial_balance();
+		issue_new_undeployed_land_block(caller, 5)?;
 		let min_block_per_round = 5u32;
 
 		let new_round = RoundInfo::new(1u32, 0u32.into(), min_block_per_round.into());

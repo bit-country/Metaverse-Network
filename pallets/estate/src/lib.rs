@@ -20,17 +20,16 @@
 use frame_support::pallet_prelude::*;
 use frame_support::{
 	dispatch::DispatchResult,
-	ensure, log,
+	ensure,
 	traits::{Currency, ExistenceRequirement, Get},
 	transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use scale_info::TypeInfo;
-use sp_runtime::traits::Zero;
+
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, One, Saturating},
-	ArithmeticError, DispatchError,
+	DispatchError, Perbill, SaturatedConversion,
 };
 use sp_std::vec::Vec;
 
@@ -40,7 +39,7 @@ pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::{Estate, LandUnitStatus, LeaseContract, OwnerId},
-	Attributes, ClassId, EstateId, FungibleTokenId, ItemId, MetaverseId, NftMetadata, TokenId, UndeployedLandBlock,
+	Attributes, ClassId, EstateId, ItemId, MetaverseId, NftMetadata, TokenId, UndeployedLandBlock,
 	UndeployedLandBlockId, UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
@@ -61,11 +60,11 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
+	use sp_runtime::traits::{CheckedSub, Zero};
 
 	use primitives::estate::EstateInfo;
-	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
-	use primitives::{Balance, RoundIndex, UndeployedLandBlockId};
+	use primitives::staking::RoundInfo;
+	use primitives::{RoundIndex, UndeployedLandBlockId};
 
 	use crate::rate::{round_issuance_range, MintingRateInfo};
 
@@ -98,7 +97,7 @@ pub mod pallet {
 		type CouncilOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// Auction handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
+		type AuctionHandler: Auction<Self::AccountId, BlockNumberFor<Self>> + CheckAuctionItemHandler<BalanceOf<Self>>;
 
 		/// Minimum number of blocks per round
 		#[pallet::constant]
@@ -141,11 +140,16 @@ pub mod pallet {
 		#[pallet::constant]
 		type LeaseOfferExpiryPeriod: Get<u32>;
 
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
 		/// Allows converting block numbers into balance
-		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
+		type BlockNumberToBalance: Convert<BlockNumberFor<Self>, BalanceOf<Self>>;
 	}
 
-	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_land_units_count)]
@@ -211,7 +215,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn round)]
 	/// Current round index and next round scheduled transition
-	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<BlockNumberFor<T>>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn minting_rate_config)]
@@ -222,7 +226,7 @@ pub mod pallet {
 	#[pallet::getter(fn leases)]
 	/// Current active estate leases
 	pub type EstateLeases<T: Config> =
-		StorageMap<_, Twox64Concat, EstateId, LeaseContract<BalanceOf<T>, T::BlockNumber>, OptionQuery>;
+		StorageMap<_, Twox64Concat, EstateId, LeaseContract<BalanceOf<T>, BlockNumberFor<T>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn leasors)]
@@ -239,37 +243,31 @@ pub mod pallet {
 		EstateId,
 		Blake2_128Concat,
 		T::AccountId,
-		LeaseContract<BalanceOf<T>, T::BlockNumber>,
+		LeaseContract<BalanceOf<T>, BlockNumberFor<T>>,
 		OptionQuery,
 	>;
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig {
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T: Config> {
 		pub minting_rate_config: MintingRateInfo,
-	}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			GenesisConfig {
-				minting_rate_config: Default::default(),
-			}
-		}
+		#[serde(skip)]
+		pub _config: PhantomData<T>,
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			<MintingRateConfig<T>>::put(self.minting_rate_config.clone());
 
 			// Start Round 1 at Block 0
-			let round: RoundInfo<T::BlockNumber> = RoundInfo::new(1u32, 0u32.into(), T::MinBlocksPerRound::get());
+			let round: RoundInfo<BlockNumberFor<T>> = RoundInfo::new(1u32, 0u32.into(), T::MinBlocksPerRound::get());
 
 			let round_issuance_per_round = round_issuance_range::<T>(self.minting_rate_config.clone());
 
 			<Round<T>>::put(round);
 			<Pallet<T>>::deposit_event(Event::NewRound(
-				T::BlockNumber::zero(),
+				BlockNumberFor::<T>::zero(),
 				1u32,
 				round_issuance_per_round.max,
 			));
@@ -327,7 +325,7 @@ pub mod pallet {
 		/// Estate lease offer is created [AccountId, Estate Id, Total rent]
 		EstateLeaseOfferCreated(T::AccountId, EstateId, BalanceOf<T>),
 		/// Estate lease offer is accepted [Estate Id, Leasor account Id, Lease End Block]
-		EstateLeaseOfferAccepted(EstateId, T::AccountId, T::BlockNumber),
+		EstateLeaseOfferAccepted(EstateId, T::AccountId, BlockNumberFor<T>),
 		/// Estate lease offer is removed [AccountId, Estate Id]
 		EstateLeaseOfferRemoved(T::AccountId, EstateId),
 		/// Estate lease contract ended [Estate Id]
@@ -337,7 +335,7 @@ pub mod pallet {
 		/// Estate rent collected [EstateId, Balance]
 		EstateRentCollected(EstateId, BalanceOf<T>),
 		/// New staking round started [Starting Block, Round, Total Land Unit]
-		NewRound(T::BlockNumber, RoundIndex, u64),
+		NewRound(BlockNumberFor<T>, RoundIndex, u64),
 	}
 
 	#[pallet::error]
@@ -435,7 +433,7 @@ pub mod pallet {
 	// TO DO: Implement offchain removal of expired lease offers
 	//#[pallet::hooks]
 	//impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-	//	fn offchain_worker(block_number: T::BlockNumber) {
+	//	fn offchain_worker(block_number: BlockNumberFor<T>) {
 	//	}
 	//}
 
@@ -595,7 +593,7 @@ pub mod pallet {
 		/// - `coordinates`: list of land units coordinates
 		///
 		/// Emits `NewEstateMinted` if successful.
-		#[pallet::weight(T::WeightInfo::create_estate() * coordinates.len() as u64)]
+		#[pallet::weight(T::WeightInfo::create_estate().saturating_mul(coordinates.len() as u64))]
 		#[transactional]
 		pub fn create_estate(
 			origin: OriginFor<T>,
@@ -620,6 +618,15 @@ pub mod pallet {
 			let token_id: TokenId =
 				T::NFTTokenizationSource::mint_token(&who, class_id, token_properties.0, token_properties.1)?;
 			let beneficiary = OwnerId::Token(class_id, token_id);
+
+			let storage_fee: BalanceOf<T> =
+				Perbill::from_percent(100u32.saturating_mul(coordinates.len() as u32)) * T::StorageDepositFee::get();
+			T::Currency::transfer(
+				&who,
+				&T::MetaverseInfoSource::get_network_treasury(),
+				storage_fee.saturated_into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
@@ -916,7 +923,7 @@ pub mod pallet {
 			UndeployedLandBlocks::<T>::try_mutate_exists(
 				&undeployed_land_block_id,
 				|undeployed_land_block| -> DispatchResultWithPostInfo {
-					let mut undeployed_land_block_record = undeployed_land_block
+					let undeployed_land_block_record = undeployed_land_block
 						.as_mut()
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
@@ -969,7 +976,7 @@ pub mod pallet {
 			UndeployedLandBlocks::<T>::try_mutate_exists(
 				&undeployed_land_block_id,
 				|undeployed_land_block| -> DispatchResultWithPostInfo {
-					let mut undeployed_land_block_record = undeployed_land_block
+					let undeployed_land_block_record = undeployed_land_block
 						.as_mut()
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
@@ -1033,7 +1040,7 @@ pub mod pallet {
 								T::NFTTokenizationSource::burn_nft(&who, &(class_id, token_id));
 								*estate_owner = None;
 							}
-							OwnerId::Account(ref a) => {
+							OwnerId::Account(ref _a) => {
 								*estate_owner = None;
 							}
 						}
@@ -1049,8 +1056,17 @@ pub mod pallet {
 						AllEstatesCount::<T>::put(new_total_estates_count);
 
 						// Mint new land tokens to replace the lands in the dissolved estate
-						let estate_account_id: T::AccountId =
+						let _estate_account_id: T::AccountId =
 							T::LandTreasury::get().into_sub_account_truncating(estate_id);
+						let storage_fee: BalanceOf<T> =
+							Perbill::from_percent(100u32.saturating_mul(estate_info.land_units.len() as u32))
+								* T::StorageDepositFee::get();
+						T::Currency::transfer(
+							&who,
+							&T::MetaverseInfoSource::get_network_treasury(),
+							storage_fee.saturated_into(),
+							ExistenceRequirement::KeepAlive,
+						)?;
 						for land_unit in estate_info.land_units {
 							// Transfer land unit from treasury to estate owner
 							Self::mint_land_unit(
@@ -1106,15 +1122,26 @@ pub mod pallet {
 
 					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(estate_id);
+
+					let storage_fee: BalanceOf<T> =
+						Perbill::from_percent(100u32.saturating_mul(land_units.len() as u32))
+							* T::StorageDepositFee::get();
+					T::Currency::transfer(
+						&who,
+						&T::MetaverseInfoSource::get_network_treasury(),
+						storage_fee.saturated_into(),
+						ExistenceRequirement::KeepAlive,
+					)?;
+
 					// Check land unit ownership
 					for land_unit in land_units.clone() {
+						let metaverse_land_unit = Self::get_land_units(estate_info.metaverse_id, land_unit)
+							.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 						ensure!(
-							Self::check_if_land_or_estate_owner(
-								&who,
-								&Self::get_land_units(estate_info.metaverse_id, land_unit).unwrap(),
-							),
+							Self::check_if_land_or_estate_owner(&who, &metaverse_land_unit,),
 							Error::<T>::LandUnitDoesNotExist
 						);
+
 						// Mint land unit
 						Self::mint_land_unit(
 							estate_info.metaverse_id,
@@ -1173,11 +1200,22 @@ pub mod pallet {
 						Error::<T>::NoPermission
 					);
 					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(estate_id);
+					let _estate_account_id: T::AccountId =
+						T::LandTreasury::get().into_sub_account_truncating(estate_id);
+
 					// Mutate estates
 					Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
-						let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+						let mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
 
+						let storage_fee: BalanceOf<T> =
+							Perbill::from_percent(100u32.saturating_mul(land_units.len() as u32))
+								* T::StorageDepositFee::get();
+						T::Currency::transfer(
+							&who,
+							&T::MetaverseInfoSource::get_network_treasury(),
+							storage_fee.saturated_into(),
+							ExistenceRequirement::KeepAlive,
+						)?;
 						// Mutate land unit ownership
 						for land_unit in land_units.clone() {
 							// Transfer land unit from treasury to estate owner
@@ -1189,7 +1227,11 @@ pub mod pallet {
 								LandUnitStatus::RemovedFromEstate,
 							)?;
 							// Remove coordinates from estate
-							let index = mut_estate_info.land_units.iter().position(|x| *x == land_unit).unwrap();
+							let index = mut_estate_info
+								.land_units
+								.iter()
+								.position(|x| *x == land_unit)
+								.ok_or(Error::<T>::LandUnitIsNotAvailable)?;
 							mut_estate_info.land_units.remove(index);
 						}
 
@@ -1320,6 +1362,14 @@ pub mod pallet {
 
 					lease.start_block = <frame_system::Pallet<T>>::block_number();
 					lease.end_block = lease.start_block + lease.duration.into();
+					// 200% storage fee since there are 2  storage inserts
+					let storage_fee: BalanceOf<T> = Perbill::from_percent(200) * T::StorageDepositFee::get();
+					T::Currency::transfer(
+						&who,
+						&T::MetaverseInfoSource::get_network_treasury(),
+						storage_fee.saturated_into(),
+						ExistenceRequirement::KeepAlive,
+					)?;
 
 					EstateLeaseOffers::<T>::remove_prefix(estate_id, None);
 					EstateLeases::<T>::insert(estate_id, lease.clone());
@@ -1493,7 +1543,7 @@ pub mod pallet {
 			);
 			let current_block = <frame_system::Pallet<T>>::block_number();
 			EstateLeases::<T>::try_mutate_exists(&estate_id, |estate_lease_value| {
-				let mut lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
+				let lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
 
 				ensure!(lease.end_block > current_block, Error::<T>::LeaseIsExpired);
 
@@ -1559,13 +1609,14 @@ impl<T: Config> Pallet<T> {
 								Error::<T>::NoPermission
 							);
 
-							if let OwnerId::Token(owner_class_id, owner_token_id) = token_owner {
+							if let OwnerId::Token(owner_class_id, _owner_token_id) = token_owner {
 								ensure!(owner_class_id != class_id, Error::<T>::LandUnitAlreadyInEstate)
 							}
 
 							// Ensure not locked
 							T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
 							T::NFTTokenizationSource::burn_nft(&a, &(class_id, token_id));
+
 							LandUnits::<T>::insert(metaverse_id, coordinate, token_owner.clone());
 						}
 						_ => (),
@@ -1594,6 +1645,7 @@ impl<T: Config> Pallet<T> {
 				);
 
 				owner = token_owner.clone();
+
 				LandUnits::<T>::insert(metaverse_id, coordinate, token_owner.clone());
 			}
 			LandUnitStatus::RemovedFromEstate => {
@@ -1664,6 +1716,15 @@ impl<T: Config> Pallet<T> {
 		to: &T::AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
+		// 200% storage fee since there are 2  storage inserts
+		let storage_fee: BalanceOf<T> = Perbill::from_percent(200) * T::StorageDepositFee::get();
+		T::Currency::transfer(
+			&who,
+			&T::MetaverseInfoSource::get_network_treasury(),
+			storage_fee.saturated_into(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+
 		UndeployedLandBlocks::<T>::try_mutate(
 			&undeployed_land_block_id,
 			|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
@@ -1767,6 +1828,18 @@ impl<T: Config> Pallet<T> {
 	) -> Result<Vec<UndeployedLandBlockId>, DispatchError> {
 		let mut undeployed_land_block_ids: Vec<UndeployedLandBlockId> = Vec::new();
 
+		// 2 inserts per land blocks
+		let storage_fee: BalanceOf<T> =
+			Perbill::from_percent(number_of_land_block.saturating_mul(2).saturating_mul(100))
+				* T::StorageDepositFee::get();
+
+		T::Currency::transfer(
+			beneficiary,
+			&T::MetaverseInfoSource::get_network_treasury(),
+			storage_fee.saturated_into(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+
 		for _ in 0..number_of_land_block {
 			let new_undeployed_land_block_id = Self::get_new_undeployed_land_block_id()?;
 
@@ -1802,11 +1875,11 @@ impl<T: Config> Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 	) -> Result<EstateId, DispatchError> {
-		EstateOwner::<T>::try_mutate_exists(&estate_id, |estate_owner| -> Result<EstateId, DispatchError> {
+		EstateOwner::<T>::try_mutate_exists(&estate_id, |_estate_owner| -> Result<EstateId, DispatchError> {
 			//ensure there is record of the estate owner with estate id and account id
 			ensure!(from != to, Error::<T>::AlreadyOwnTheEstate);
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
-			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let _estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
 				!EstateLeases::<T>::contains_key(estate_id),
 				Error::<T>::EstateIsAlreadyLeased
@@ -2002,13 +2075,13 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn verify_land_unit_in_bound(block_coordinate: &(i32, i32), land_unit_coordinates: &Vec<(i32, i32)>) -> bool {
-		let mut vec_axis = land_unit_coordinates.iter().map(|lu| lu.0).collect::<Vec<_>>();
-		let mut vec_yaxis = land_unit_coordinates.iter().map(|lu| lu.1).collect::<Vec<_>>();
+		let vec_axis = land_unit_coordinates.iter().map(|lu| lu.0).collect::<Vec<_>>();
+		let vec_yaxis = land_unit_coordinates.iter().map(|lu| lu.1).collect::<Vec<_>>();
 
-		let max_axis = vec_axis.iter().max().unwrap();
-		let max_yaxis = vec_yaxis.iter().max().unwrap();
-		let min_axis = vec_axis.iter().min().unwrap();
-		let min_yaxis = vec_yaxis.iter().min().unwrap();
+		let max_axis = vec_axis.iter().max().unwrap_or(&i32::MAX);
+		let max_yaxis = vec_yaxis.iter().max().unwrap_or(&i32::MAX);
+		let min_axis = vec_axis.iter().min().unwrap_or(&i32::MIN);
+		let min_yaxis = vec_yaxis.iter().min().unwrap_or(&i32::MIN);
 
 		let top_left_axis = block_coordinate
 			.0
@@ -2048,7 +2121,7 @@ impl<T: Config> Pallet<T> {
 		NextEstateId::<T>::put(1);
 		AllLandUnitsCount::<T>::put(0);
 		AllEstatesCount::<T>::put(0);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 
 	fn collect_network_fee(

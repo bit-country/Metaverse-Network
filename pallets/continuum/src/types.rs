@@ -132,7 +132,11 @@ impl<AccountId> ContinuumSpotTally<AccountId> {
 	}
 
 	pub fn result(&mut self) -> Option<bool> {
-		let total_nay = self.nays.checked_div(self.turnout).unwrap().saturating_mul(100);
+		let total_nay = self
+			.nays
+			.checked_div(self.turnout)
+			.unwrap_or(Zero::zero())
+			.saturating_mul(100);
 		let approve_threshold = 49;
 
 		Some(total_nay > approve_threshold)

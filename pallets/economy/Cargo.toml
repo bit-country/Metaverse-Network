@@ -12,16 +12,18 @@ version = '2.0.0-rc6'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
+log = { workspace = true }
 serde = { workspace = true, optional = true, features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive"] }
+codec = { workspace = true, package = "parity-scale-codec" }
 scale-info = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 pallet-balances = { workspace = true }
-pallet-randomness-collective-flip = { workspace = true }
+pallet-insecure-randomness-collective-flip = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
+pallet-proxy = { workspace = true }
 sp-io = { workspace = true }
 sp-core = { workspace = true }
 sp-session = { workspace = true }
@@ -54,20 +56,33 @@ runtime-benchmarks = [
 default = ['std']
 std = [
     "serde",
+    "log/std",
     "codec/std",
-    "sp-runtime/std",
     "frame-support/std",
     "frame-system/std",
     "sp-io/std",
     "sp-core/std",
     "sp-std/std",
+    "sp-session/std",
+    "sp-version/std",
+    "sp-runtime/std",
     "orml-traits/std",
     "orml-tokens/std",
+    "orml-currencies/std",
+    "orml-nft/std",
+    "currencies/std",
     "pallet-nft/std",
+    "pallet-estate/std",
+    "pallet-mining/std",
+    "auction-manager/std",
     "primitives/std",
+    "core-primitives/std",
     "scale-info/std",
     "frame-benchmarking/std",
-    "currencies/std",
-    "auction-manager/std",
-    "pallet-mining/std"
+    "pallet-proxy/std",
+    "pallet-balances/std",
+    "pallet-timestamp/std",
+    "pallet-transaction-payment/std",
+    "pallet-insecure-randomness-collective-flip/std",
+    "pallet-sudo/std",
 ]

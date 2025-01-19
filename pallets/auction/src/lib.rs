@@ -27,11 +27,11 @@
 
 use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 use frame_support::{ensure, pallet_prelude::*, transactional};
-use frame_system::{self as system, ensure_signed};
+use frame_system::{self as system, ensure_signed, pallet_prelude::BlockNumberFor};
 use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
-	traits::{CheckedDiv, One, Saturating, Zero},
+	traits::{One, Saturating, Zero},
 	DispatchError, DispatchResult, Perbill,
 };
 use sp_std::vec::Vec;
@@ -41,7 +41,7 @@ use auction_manager::{
 };
 use core_primitives::UndeployedLandBlocksTrait;
 pub use pallet::*;
-use pallet_nft::Pallet as NFTModule;
+
 use primitives::{continuum::MapTrait, estate::Estate, AuctionId, ItemId, NftOffer};
 pub use weights::WeightInfo;
 
@@ -58,17 +58,12 @@ pub mod weights;
 pub struct AuctionLogicHandler;
 
 pub mod migration_v2 {
-	use codec::FullCodec;
 	use codec::{Decode, Encode};
 	use scale_info::TypeInfo;
 	#[cfg(feature = "std")]
 	use serde::{Deserialize, Serialize};
-	use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, RuntimeDebug};
-	use sp_std::{
-		cmp::{Eq, PartialEq},
-		fmt::Debug,
-		vec::Vec,
-	};
+	use sp_runtime::RuntimeDebug;
+	use sp_std::cmp::{Eq, PartialEq};
 
 	use auction_manager::{AuctionType, ListingLevel};
 	use primitives::{AssetId, EstateId, FungibleTokenId, MetaverseId};
@@ -104,20 +99,15 @@ pub mod migration_v2 {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::log;
+	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
+	use core_primitives::{MetaverseTrait, NFTTrait};
+	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::sp_runtime::traits::CheckedSub;
-	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::tokens::currency};
-	use frame_system::ensure_root;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use primitives::{Balance, ClassId, FungibleTokenId, MetaverseId, TokenId};
 	use sp_runtime::traits::CheckedAdd;
 	use sp_runtime::ArithmeticError;
-
-	use auction_manager::{AuctionItemV1, CheckAuctionItemHandler, ListingLevel};
-	use core_primitives::{MetaverseTrait, NFTTrait};
-	use primitives::{AssetId, Balance, ClassId, FungibleTokenId, MetaverseId, TokenId};
-
-	use crate::migration_v2::V1ItemId;
 
 	use super::*;
 
@@ -136,14 +126,14 @@ pub mod pallet {
 
 		/// Default auction close time if there is no end time specified
 		#[pallet::constant]
-		type AuctionTimeToClose: Get<Self::BlockNumber>;
+		type AuctionTimeToClose: Get<BlockNumberFor<Self>>;
 
 		/// The `AuctionHandler` trait that allow custom bidding logic and handles auction result
-		type Handler: AuctionHandler<Self::AccountId, BalanceOf<Self>, Self::BlockNumber, AuctionId>;
+		type Handler: AuctionHandler<Self::AccountId, BalanceOf<Self>, BlockNumberFor<Self>, AuctionId>;
 
 		/// Native currency type that handles currency in auction
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 
 		/// Multi currencies type that handles different currency type in auction
 		type FungibleTokenCurrency: MultiReservableCurrency<
@@ -159,7 +149,7 @@ pub mod pallet {
 
 		/// Minimum auction duration when new listing created.
 		#[pallet::constant]
-		type MinimumAuctionDuration: Get<Self::BlockNumber>;
+		type MinimumAuctionDuration: Get<BlockNumberFor<Self>>;
 
 		/// Estate handler that support land and estate listing
 		type EstateHandler: Estate<Self::AccountId>;
@@ -189,7 +179,7 @@ pub mod pallet {
 
 		/// Offer duration
 		#[pallet::constant]
-		type OfferDuration: Get<Self::BlockNumber>;
+		type OfferDuration: Get<BlockNumberFor<Self>>;
 
 		/// Minimum listing price
 		#[pallet::constant]
@@ -197,20 +187,25 @@ pub mod pallet {
 
 		/// Anti-snipe duration
 		#[pallet::constant]
-		type AntiSnipeDuration: Get<Self::BlockNumber>;
+		type AntiSnipeDuration: Get<BlockNumberFor<Self>>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn auctions)]
 	/// Stores on-going and future auctions. Closed auction are removed.
 	pub(super) type Auctions<T: Config> =
-		StorageMap<_, Twox64Concat, AuctionId, AuctionInfo<T::AccountId, BalanceOf<T>, T::BlockNumber>, OptionQuery>;
+		StorageMap<_, Twox64Concat, AuctionId, AuctionInfo<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_auction_item)]
 	/// Store asset with Auction
 	pub(super) type AuctionItems<T: Config> =
-		StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
+		StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, BlockNumberFor<T>, BalanceOf<T>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn items_in_auction)]
@@ -226,7 +221,7 @@ pub mod pallet {
 	#[pallet::getter(fn auction_end_time)]
 	/// Index auctions by end time.
 	pub(super) type AuctionEndTime<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, BlockNumberFor<T>, Twox64Concat, AuctionId, (), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn authorised_metaverse_collection)]
@@ -243,7 +238,7 @@ pub mod pallet {
 		(ClassId, TokenId),
 		Blake2_128Concat,
 		T::AccountId,
-		NftOffer<BalanceOf<T>, T::BlockNumber>,
+		NftOffer<BalanceOf<T>, BlockNumberFor<T>>,
 		OptionQuery,
 	>;
 
@@ -260,7 +255,7 @@ pub mod pallet {
 			ListingLevel<T::AccountId>,
 			BalanceOf<T>,
 			BalanceOf<T>,
-			T::BlockNumber,
+			BlockNumberFor<T>,
 		),
 		/// Auction finalized. [auction_id, bidder, amount]
 		AuctionFinalized(AuctionId, T::AccountId, BalanceOf<T>),
@@ -283,7 +278,7 @@ pub mod pallet {
 		/// Nft offer is withdrawn [class_id, token_id, account_id]
 		NftOfferWithdrawn(ClassId, TokenId, T::AccountId),
 		/// Auction extended. [auction_id, end_block]
-		AuctionExtended(AuctionId, T::BlockNumber),
+		AuctionExtended(AuctionId, BlockNumberFor<T>),
 	}
 
 	/// Errors inform users that something went wrong.
@@ -380,13 +375,20 @@ pub mod pallet {
 		pub fn bid(origin: OriginFor<T>, id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+			let auction_item: AuctionItem<T::AccountId, BlockNumberFor<T>, BalanceOf<T>> =
 				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 			ensure!(
 				!auction_item.item_id.is_map_spot(),
 				Error::<T>::AuctionTypeIsNotSupported
 			);
+
+			T::Currency::transfer(
+				&from,
+				&T::MetaverseInfoSource::get_network_treasury(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			Self::auction_bid_handler(from, id, value)?;
 
@@ -408,7 +410,7 @@ pub mod pallet {
 		pub fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 
-			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+			let auction_item: AuctionItem<T::AccountId, BlockNumberFor<T>, BalanceOf<T>> =
 				Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			ensure!(
 				!auction_item.item_id.is_map_spot(),
@@ -436,7 +438,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			item_id: ItemId<BalanceOf<T>>,
 			value: BalanceOf<T>,
-			end_time: T::BlockNumber,
+			end_time: BlockNumberFor<T>,
 			listing_level: ListingLevel<T::AccountId>,
 			currency_id: FungibleTokenId,
 		) -> DispatchResultWithPostInfo {
@@ -450,9 +452,10 @@ pub mod pallet {
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
-			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
+			let start_time: BlockNumberFor<T> = <system::Pallet<T>>::block_number();
 
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
+			let remaining_time: BlockNumberFor<T> =
+				end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
 
 			// Ensure auction duration is valid
 			ensure!(
@@ -495,7 +498,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			item_id: ItemId<BalanceOf<T>>,
 			value: BalanceOf<T>,
-			end_time: T::BlockNumber,
+			end_time: BlockNumberFor<T>,
 			listing_level: ListingLevel<T::AccountId>,
 			currency_id: FungibleTokenId,
 		) -> DispatchResultWithPostInfo {
@@ -508,8 +511,9 @@ pub mod pallet {
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
-			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
+			let start_time: BlockNumberFor<T> = <system::Pallet<T>>::block_number();
+			let remaining_time: BlockNumberFor<T> =
+				end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
 
 			// Ensure auction duration is valid
 			ensure!(
@@ -521,6 +525,13 @@ pub mod pallet {
 			if let ListingLevel::Local(metaverse_id) = listing_level {
 				listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
 			}
+
+			T::Currency::transfer(
+				&from,
+				&T::MetaverseInfoSource::get_network_treasury(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			Self::create_auction(
 				AuctionType::BuyNow,
@@ -787,9 +798,9 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		/// Hooks that call every new block is initialized.
-		fn on_initialize(now: T::BlockNumber) -> Weight {
+		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			let mut total_item = 0;
 			for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 				total_item += 1;
@@ -801,19 +812,19 @@ pub mod pallet {
 			T::WeightInfo::on_finalize().saturating_mul(total_item)
 		}
 
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_auction_item_data_v3();
-			Weight::from_ref_time(0u64)
-		}
+		// fn on_runtime_upgrade() -> Weight {
+		// 	Self::upgrade_auction_item_data_v3();
+		// 	Weight::from_(0u64)
+		// }
 	}
 
-	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Auction<T::AccountId, BlockNumberFor<T>> for Pallet<T> {
 		type Balance = BalanceOf<T>;
 
 		/// Internal update auction extension
 		fn update_auction(
 			id: AuctionId,
-			info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>,
+			info: AuctionInfo<T::AccountId, Self::Balance, BlockNumberFor<T>>,
 		) -> DispatchResult {
 			let auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			if let Some(old_end) = auction.end {
@@ -831,10 +842,10 @@ pub mod pallet {
 		fn new_auction(
 			_recipient: T::AccountId,
 			_initial_amount: Self::Balance,
-			start: T::BlockNumber,
-			end: Option<T::BlockNumber>,
+			start: BlockNumberFor<T>,
+			end: Option<BlockNumberFor<T>>,
 		) -> Result<AuctionId, DispatchError> {
-			let auction: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber> =
+			let auction: AuctionInfo<T::AccountId, Self::Balance, BlockNumberFor<T>> =
 				AuctionInfo { bid: None, start, end };
 
 			let auction_id: AuctionId = AuctionsIndex::<T>::try_mutate(|n| -> Result<AuctionId, DispatchError> {
@@ -857,10 +868,10 @@ pub mod pallet {
 		fn create_auction(
 			auction_type: AuctionType,
 			item_id: ItemId<Self::Balance>,
-			_end: Option<T::BlockNumber>,
+			_end: Option<BlockNumberFor<T>>,
 			recipient: T::AccountId,
 			initial_amount: Self::Balance,
-			_start: T::BlockNumber,
+			_start: BlockNumberFor<T>,
 			listing_level: ListingLevel<T::AccountId>,
 			listing_fee: Perbill,
 			currency_id: FungibleTokenId,
@@ -1172,7 +1183,7 @@ pub mod pallet {
 
 		/// Internal auction bid handler
 		fn auction_bid_handler(from: T::AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
-			let mut auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+			let auction_item: AuctionItem<T::AccountId, BlockNumberFor<T>, BalanceOf<T>> =
 				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			ensure!(
 				auction_item.auction_type == AuctionType::Auction,
@@ -1188,7 +1199,7 @@ pub mod pallet {
 			}
 
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
-				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				let auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let block_number = <system::Pallet<T>>::block_number();
 
@@ -1255,7 +1266,7 @@ pub mod pallet {
 
 		/// Internal auction bid handler for local marketplace
 		fn local_auction_bid_handler(
-			_now: T::BlockNumber,
+			_now: BlockNumberFor<T>,
 			id: AuctionId,
 			new_bid: (T::AccountId, Self::Balance),
 			last_bid: Option<(T::AccountId, Self::Balance)>,
@@ -1265,7 +1276,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				let auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
@@ -1307,12 +1318,12 @@ pub mod pallet {
 		}
 
 		/// Internal get auction info
-		fn auction_info(id: AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
+		fn auction_info(id: AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, BlockNumberFor<T>>> {
 			Self::auctions(id)
 		}
 
 		/// Internal get auction info
-		fn auction_item(id: AuctionId) -> Option<AuctionItem<T::AccountId, T::BlockNumber, Self::Balance>> {
+		fn auction_item(id: AuctionId) -> Option<AuctionItem<T::AccountId, BlockNumberFor<T>, Self::Balance>> {
 			Self::get_auction_item(id)
 		}
 
@@ -1376,7 +1387,7 @@ pub mod pallet {
 			let block_number = <system::Pallet<T>>::block_number();
 			ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 			if !(auction.end.is_none()) {
-				let auction_end: T::BlockNumber = auction.end.ok_or(Error::<T>::AuctionIsExpired)?;
+				let auction_end: BlockNumberFor<T> = auction.end.ok_or(Error::<T>::AuctionIsExpired)?;
 				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
 			}
 
@@ -1407,7 +1418,7 @@ pub mod pallet {
 			<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 
 			// Transfer balance from buy it now user to asset owner
-			let mut currency_transfer;
+			let currency_transfer;
 			if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
 				currency_transfer = <T as Config>::Currency::transfer(
 					&from,
@@ -1564,13 +1575,13 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Pallet<T> {
+	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, BlockNumberFor<T>, AuctionId> for Pallet<T> {
 		fn on_new_bid(
-			_now: T::BlockNumber,
+			_now: BlockNumberFor<T>,
 			_id: AuctionId,
 			_new_bid: (T::AccountId, BalanceOf<T>),
 			_last_bid: Option<(T::AccountId, BalanceOf<T>)>,
-		) -> OnNewBidResult<T::BlockNumber> {
+		) -> OnNewBidResult<BlockNumberFor<T>> {
 			OnNewBidResult {
 				accept_bid: true,
 				auction_end_change: Change::NoChange,
@@ -1599,7 +1610,7 @@ pub mod pallet {
 					}
 
 					// Handle balance transfer
-					let mut currency_transfer;
+					let currency_transfer;
 					if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
 						currency_transfer = <T as Config>::Currency::transfer(
 							&high_bidder,
@@ -1774,7 +1785,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn check_valid_finality(end: &T::BlockNumber, quantity: u32) -> bool {
+		fn check_valid_finality(end: &BlockNumberFor<T>, quantity: u32) -> bool {
 			let existing_auctions_same_block: u32 = <AuctionEndTime<T>>::iter_prefix_values(end).count() as u32;
 			let total_auction_in_same_block = existing_auctions_same_block.saturating_add(quantity);
 
@@ -1837,42 +1848,15 @@ pub mod pallet {
 			}
 			Ok(())
 		}
-		/*
-				pub fn upgrade_auction_item_data_v2() -> Weight {
-					log::info!("Start upgrading auction item data v2");
-					let mut num_auction_items = 0;
 
-					AuctionItems::<T>::translate(
-						|_k, auction_v1: AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
-							num_auction_items += 1;
-							let v2: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
-								item_id: auction_v1.item_id,
-								recipient: auction_v1.recipient,
-								initial_amount: auction_v1.initial_amount,
-								amount: auction_v1.amount,
-								start_time: auction_v1.start_time,
-								end_time: auction_v1.end_time,
-								auction_type: auction_v1.auction_type,
-								listing_level: auction_v1.listing_level,
-								currency_id: auction_v1.currency_id,
-								listing_fee: Perbill::from_percent(0u32),
-							};
-							Some(v2)
-						},
-					);
-
-					log::info!("{} auction items upgraded:", num_auction_items);
-					0
-				}
-		*/
 		pub fn upgrade_auction_item_data_v3() -> Weight {
 			log::info!("Start upgrading auction item data v3");
 			let mut num_auction_items = 0;
 
 			AuctionItems::<T>::translate(
-				|_k, auction_v2: AuctionItemV2<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+				|_k, auction_v2: AuctionItemV2<T::AccountId, BlockNumberFor<T>, BalanceOf<T>>| {
 					num_auction_items += 1;
-					let v3: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
+					let v3: AuctionItem<T::AccountId, BlockNumberFor<T>, BalanceOf<T>> = AuctionItem {
 						item_id: auction_v2.item_id,
 						recipient: auction_v2.recipient,
 						initial_amount: auction_v2.initial_amount,
@@ -1889,49 +1873,8 @@ pub mod pallet {
 			);
 
 			log::info!("{} auction items upgraded:", num_auction_items);
-			Weight::from_ref_time(0)
+			Weight::from_parts(0, 0)
 		}
-
-		// Runtime upgrade V1 - may required for production release
-		//		pub fn upgrade_asset_auction_data_v2() -> Weight {
-		//			log::info!("Start upgrading nft class data v2");
-		//			let mut num_auction_item = 0;
-		//
-		//			AuctionItems::<T>::translate(
-		//				|_k, auction_v1: migration_v2::AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
-		//					num_auction_item += 1;
-		//
-		//					log::info!("Upgrading auction items data");
-		//
-		//					let asset_id = auction_v1.item_id;
-		//
-		//					match asset_id {
-		//						V1ItemId::NFT(asset_id) => {
-		//							num_auction_item += 1;
-		//							let token = T::NFTHandler::get_asset_id(asset_id).unwrap();
-		//							let v2_item_id = ItemId::NFT(token.0, token.1);
-		//
-		//							let v: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
-		//								item_id: v2_item_id,
-		//								recipient: auction_v1.recipient,
-		//								initial_amount: auction_v1.initial_amount,
-		//								amount: auction_v1.amount,
-		//								start_time: auction_v1.start_time,
-		//								end_time: auction_v1.end_time,
-		//								auction_type: auction_v1.auction_type,
-		//								listing_level: auction_v1.listing_level,
-		//								currency_id: auction_v1.currency_id,
-		//							};
-		//							Some(v)
-		//						}
-		//						_ => None,
-		//					}
-		//				},
-		//			);
-		//
-		//			log::info!("Asset Item in Auction upgraded: {}", num_auction_item);
-		//			Weight::from_ref_time(0)
-		//		}
 
 		pub fn swap_new_bid(
 			id: AuctionId,
@@ -1942,7 +1885,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				let auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
@@ -1994,9 +1937,9 @@ pub mod pallet {
 			})
 		}
 
-		fn extend_auction_end_time(id: AuctionId, new_end_block: T::BlockNumber) -> DispatchResult {
+		fn extend_auction_end_time(id: AuctionId, new_end_block: BlockNumberFor<T>) -> DispatchResult {
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				let auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 				auction_item.end_time = new_end_block;
 				Ok(())
 			})

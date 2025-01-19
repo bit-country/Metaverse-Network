@@ -26,9 +26,8 @@
 #![allow(clippy::upper_case_acronyms)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use core::result;
-
 use codec::Encode;
+use frame_support::traits::ExistenceRequirement::KeepAlive;
 use frame_support::traits::Len;
 use frame_support::{
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -39,21 +38,20 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
-use scale_info::TypeInfo;
 use sp_runtime::traits::Saturating;
 use sp_runtime::Perbill;
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError,
 };
+use sp_std::prelude::*;
 use sp_std::vec::Vec;
-use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData, NftAssetDataV1, NftClassDataV1};
-use primitives::{AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId};
+use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1, PreSignedMint};
+use primitives::{AssetId, ClassId, GroupCollectionId, ItemId, TokenId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -62,12 +60,13 @@ pub mod benchmarking;
 mod mock;
 #[cfg(test)]
 mod tests;
+mod utils;
 
 pub mod weights;
 
 const TIMECAPSULE_ID: LockIdentifier = *b"bctimeca";
 
-#[derive(codec::Encode, codec::Decode, Clone, frame_support::RuntimeDebug, PartialEq)]
+#[derive(codec::Encode, codec::Decode, Clone, RuntimeDebug, PartialEq)]
 pub enum StorageVersion {
 	V0,
 	V1,
@@ -76,10 +75,12 @@ pub enum StorageVersion {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-	use sp_runtime::traits::CheckedSub;
+	use sp_runtime::traits::{CheckedSub, IdentifyAccount, Verify};
 	use sp_runtime::ArithmeticError;
 
-	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
+	use primitive_traits::{
+		CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, PreSignedMint, TokenType,
+	};
 	use primitives::FungibleTokenId;
 
 	use super::*;
@@ -92,6 +93,7 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config
 		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
+		+ pallet_proxy::Config
 	{
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The data deposit per byte to calculate fee
@@ -112,7 +114,7 @@ pub mod pallet {
 		/// Weight info
 		type WeightInfo: WeightInfo;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
+		type AuctionHandler: Auction<Self::AccountId, BlockNumberFor<Self>> + CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Max transfer batch
 		#[pallet::constant]
 		type MaxBatchTransfer: Get<u32>;
@@ -131,12 +133,34 @@ pub mod pallet {
 		/// Fungible token id for promotion incentive
 		#[pallet::constant]
 		type MiningResourceId: Get<FungibleTokenId>;
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
+		/// Off-Chain signature type.
+		///
+		/// Can verify whether an `Self::OffchainPublic` created a signature.
+		type OffchainSignature: Verify<Signer = Self::OffchainPublic> + Parameter;
+
+		/// Off-Chain public key.
+		///
+		/// Must identify as an on-chain `Self::AccountId`.
+		type OffchainPublic: IdentifyAccount<AccountId = Self::AccountId>;
 	}
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 	pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 	pub type BalanceOf<T> =
 		<<T as orml_nft::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	/// A type alias for the pre-signed minting configuration for a specified collection.
+	pub(super) type PreSignedMintOf<T> = PreSignedMint<
+		<T as orml_nft::Config>::ClassId,
+		<T as orml_nft::Config>::TokenId,
+		<T as frame_system::Config>::AccountId,
+		BlockNumberFor<T>,
+		BalanceOf<T>,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
@@ -195,17 +219,13 @@ pub mod pallet {
 	>;
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig {}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			GenesisConfig {}
-		}
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T> {
+		pub _config: PhantomData<T>,
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// Pre-mint group collection for lands
 			let land_collection_data = NftGroupCollectionData {
@@ -260,7 +280,7 @@ pub mod pallet {
 			<T as frame_system::Config>::AccountId,
 			ClassIdOf<T>,
 			TokenIdOf<T>,
-			T::BlockNumber,
+			BlockNumberFor<T>,
 			Vec<u8>,
 		),
 		/// Successfully transfer NFT
@@ -295,7 +315,7 @@ pub mod pallet {
 		/// Executed NFT
 		ExecutedNft(AssetId),
 		/// Scheduled time capsule
-		ScheduledTimeCapsule(AssetId, Vec<u8>, T::BlockNumber),
+		ScheduledTimeCapsule(AssetId, Vec<u8>, BlockNumberFor<T>),
 		/// Collection is locked
 		CollectionLocked(ClassIdOf<T>),
 		/// Collection is unlocked
@@ -308,6 +328,16 @@ pub mod pallet {
 		NftUnlocked(ClassIdOf<T>, TokenIdOf<T>),
 		/// Successfully updated royalty fee
 		ClassRoyaltyFeeUpdated(ClassIdOf<T>, Perbill),
+		// New proxy NFT minted
+		NewProxyNftMinted(
+			(ClassIdOf<T>, TokenIdOf<T>),
+			(ClassIdOf<T>, TokenIdOf<T>),
+			<T as frame_system::Config>::AccountId,
+			ClassIdOf<T>,
+			u32,
+			TokenIdOf<T>,
+			<T as frame_system::Config>::AccountId,
+		),
 	}
 
 	#[pallet::error]
@@ -379,8 +409,13 @@ pub mod pallet {
 		/// Invalid stackable NFT amount
 		InvalidStackableNftAmount,
 		/// Invalid current total issuance
-		/// Invalid current total issuance
 		InvalidCurrentTotalIssuance,
+		/// Wrong signature
+		WrongSignature,
+		/// Signature expired
+		SignatureExpired,
+		/// Fail to mint new proxy nft
+		FailToMintProxyNft,
 	}
 
 	#[pallet::call]
@@ -393,7 +428,7 @@ pub mod pallet {
 		/// - `properties`: properties of the group collection as NFT metadata
 		///
 		/// Emits `NewNftCollectionCreated` if successful.
-		#[pallet::weight(T::WeightInfo::create_group())]
+		#[pallet::weight(<T as Config>::WeightInfo::create_group())]
 		#[transactional]
 		pub fn create_group(
 			origin: OriginFor<T>,
@@ -435,7 +470,7 @@ pub mod pallet {
 		/// - `royalty_fee` - the fee (as a percent value) which will go to the class owner
 		///
 		/// Emits `NewNftClassCreated` if successful.
-		#[pallet::weight(T::WeightInfo::create_class())]
+		#[pallet::weight(<T as Config>::WeightInfo::create_class())]
 		#[transactional]
 		pub fn create_class(
 			origin: OriginFor<T>,
@@ -448,7 +483,7 @@ pub mod pallet {
 			mint_limit: Option<u32>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let class_id = Self::do_create_class(
+			let _class_id = Self::do_create_class(
 				&sender,
 				metadata,
 				attributes,
@@ -510,7 +545,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			Self::update_class_total_issuance(&sender, &class_id, 1u32)?;
+			Self::update_class_total_issuance(&sender, &class_id, 1u32, false)?;
 			// Collect minting deposit
 			let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 			let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
@@ -530,7 +565,7 @@ pub mod pallet {
 			let result =
 				NftModule::<T>::mint_stackable_nft(&sender, class_id, metadata, new_stackable_nft_data, amount);
 			match result {
-				Ok((token_id, balance)) => {
+				Ok((token_id, _balance)) => {
 					Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, token_id, amount));
 					Ok(().into())
 				}
@@ -545,7 +580,7 @@ pub mod pallet {
 		/// - `asset_id`: the asset (class ID, token ID) that will be transferred
 		///
 		/// Emits `TransferedNft` if successful.
-		#[pallet::weight(T::WeightInfo::transfer())]
+		#[pallet::weight(<T as Config>::WeightInfo::transfer())]
 		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -571,7 +606,7 @@ pub mod pallet {
 		/// - `asset_id`: the asset (class ID, token ID) that will be transferred
 		///
 		/// Emits `TransferedStakcableNft` if successful.
-		#[pallet::weight(T::WeightInfo::transfer_stackable_nft())]
+		#[pallet::weight(<T as Config>::WeightInfo::transfer_stackable_nft())]
 		#[transactional]
 		pub fn transfer_stackable_nft(
 			origin: OriginFor<T>,
@@ -607,7 +642,7 @@ pub mod pallet {
 		/// - `tos`: list of assets (class ID, token ID) that will be transferred
 		///
 		/// Emits `TransferedNft` if successful.
-		#[pallet::weight(T::WeightInfo::transfer_batch() * tos.len() as u64)]
+		#[pallet::weight(<T as Config>::WeightInfo::transfer_batch() * tos.len() as u64)]
 		#[transactional]
 		pub fn transfer_batch(
 			origin: OriginFor<T>,
@@ -642,7 +677,7 @@ pub mod pallet {
 		/// - `contribution`: the amount the sender contributes to the Nft
 		///
 		/// Emits no event if successful.
-		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[pallet::weight(<T as Config>::WeightInfo::sign_asset())]
 		#[transactional]
 		pub fn sign_asset(
 			origin: OriginFor<T>,
@@ -670,6 +705,15 @@ pub mod pallet {
 				ExistenceRequirement::KeepAlive,
 			)?;
 
+			let network_treasury = T::Treasury::get().into_account_truncating();
+			// Transfer storage deposit fee
+			<T as orml_nft::Config>::Currency::transfer(
+				&sender,
+				&network_treasury,
+				T::StorageDepositFee::get().into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
 					let supporters = supporters.as_mut().ok_or(Error::<T>::EmptySupporters)?;
@@ -690,7 +734,7 @@ pub mod pallet {
 		/// - `enable`: the promotion status (on or off)
 		///
 		/// Emits `PromotionEnabled` if successful.
-		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[pallet::weight(<T as Config>::WeightInfo::sign_asset())]
 		#[transactional]
 		pub fn enable_promotion(origin: OriginFor<T>, enable: bool) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
@@ -707,7 +751,7 @@ pub mod pallet {
 		/// - `asset_id`: the asset (class ID, token ID) that will be burned
 		///
 		/// Emits `CollectionLocked` if successful.
-		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[pallet::weight(<T as Config>::WeightInfo::sign_asset())]
 		#[transactional]
 		pub fn burn(origin: OriginFor<T>, asset_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
@@ -723,7 +767,7 @@ pub mod pallet {
 		/// - `class_id`: the class ID of the collection
 		///
 		/// Emits `CollectionLocked` if successful.
-		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[pallet::weight(<T as Config>::WeightInfo::sign_asset())]
 		pub fn force_lock_collection(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -744,7 +788,7 @@ pub mod pallet {
 		/// - `class_id`: the class ID of the collection
 		///
 		/// Emits `CollectionUnlocked` if successful.
-		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[pallet::weight(<T as Config>::WeightInfo::sign_asset())]
 		pub fn force_unlock_collection(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -766,7 +810,7 @@ pub mod pallet {
 		/// - `asset_id`: the asset (class ID, token ID) that will be transferred
 		///
 		/// Emits `ForceTransferredNft` if successful.
-		#[pallet::weight(T::WeightInfo::transfer())]
+		#[pallet::weight(<T as Config>::WeightInfo::transfer())]
 		#[transactional]
 		pub fn force_transfer(
 			origin: OriginFor<T>,
@@ -794,7 +838,7 @@ pub mod pallet {
 		/// - `class_id`: the class ID of the collection
 		///
 		/// Emits `HardLimitSet` if successful.
-		#[pallet::weight(T::WeightInfo::set_hard_limit())]
+		#[pallet::weight(<T as Config>::WeightInfo::set_hard_limit())]
 		#[transactional]
 		pub fn set_hard_limit(
 			origin: OriginFor<T>,
@@ -826,7 +870,7 @@ pub mod pallet {
 		/// - `class_id`: the class ID of the class which funds will be withdrawn
 		///
 		/// Emits `ClassFundsWithdrawn` if successful.
-		#[pallet::weight(T::WeightInfo::withdraw_funds_from_class_fund())]
+		#[pallet::weight(<T as Config>::WeightInfo::withdraw_funds_from_class_fund())]
 		#[transactional]
 		pub fn withdraw_funds_from_class_fund(
 			origin: OriginFor<T>,
@@ -860,12 +904,12 @@ pub mod pallet {
 		/// - `token_id`: the class ID nad token ID of the asset
 		///
 		/// Emits `NftUnlocked` if successful.
-		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[pallet::weight(<T as Config>::WeightInfo::sign_asset())]
 		pub fn force_unlock_nft(origin: OriginFor<T>, token_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
 			ensure_root(origin)?;
 
 			Tokens::<T>::try_mutate_exists(&token_id.0, &token_id.1, |maybe_token_info| -> DispatchResult {
-				let mut token_info_result = maybe_token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
+				let token_info_result = maybe_token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
 				token_info_result.data.is_locked = false;
 				Self::deposit_event(Event::<T>::NftUnlocked(token_id.0, token_id.1));
 
@@ -881,7 +925,7 @@ pub mod pallet {
 		/// - `new_total_issuance`: the new total issuance of the collection
 		///
 		/// Emits `ClassTotalIssuanceUpdated` if successful.
-		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
+		#[pallet::weight(<T as Config>::WeightInfo::force_update_total_issuance())]
 		pub fn force_update_total_issuance(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -912,7 +956,7 @@ pub mod pallet {
 		/// - `new_royalty_fee: the new royalty fee of the collection
 		///
 		/// Emits `ClassRoyaltyFeeUpdated` if successful.
-		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
+		#[pallet::weight(<T as Config>::WeightInfo::force_update_total_issuance())]
 		pub fn force_update_royalty_fee(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -934,13 +978,62 @@ pub mod pallet {
 				Ok(())
 			})
 		}
+
+		/// Mint an item by providing the pre-signed approval.
+		///
+		/// Origin must be Signed.
+		///
+		/// - `mint_data`: The pre-signed approval that consists of the information about the item,
+		///   its metadata, attributes, who can mint it (`None` for anyone) and until what block
+		///   number.
+		/// - `signature`: The signature of the `data` object.
+		/// - `signer`: The `data` object's signer. Should be an Issuer of the collection.
+		#[pallet::weight(<T as Config>::WeightInfo::mint_pre_signed())]
+		pub fn mint_pre_signed(
+			origin: OriginFor<T>,
+			mint_data: Box<PreSignedMintOf<T>>,
+			signature: T::OffchainSignature,
+			signer: T::AccountId,
+		) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+			Self::validate_signature(&Encode::encode(&mint_data), &signature, &signer)?;
+			Self::do_mint_pre_signed(origin, *mint_data, signer)
+		}
+
+		/// Mint nft as wallet then owner as proxy acount to control this wallet.
+		///
+		/// Origin must be Signed.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `class_id`: class ID of the collection the NFT will be part of
+		/// - `mint_to`: address that will receive NFT
+		/// - `metadata`: NFT assets metadata as NFT metadata
+		/// - `attributes`: NFTs' attributes
+		/// - `quantity`: the number of NFTs to be minted
+		///
+		/// Emits `NewNftMinted` if successful.
+		#[pallet::weight(< T as Config >::WeightInfo::mint())]
+		#[transactional]
+		pub fn mint_nft_proxy(
+			origin: OriginFor<T>,
+			mint_to: T::AccountId,
+			class_id: ClassIdOf<T>,
+			metadata: NftMetadata,
+			attributes: Attributes,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+
+			Self::do_mint_nft_proxy(&sender, &mint_to, class_id, None, metadata, attributes, false)?;
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		//		fn on_runtime_upgrade() -> Weight {
 		//			Self::storage_migration_fix_locking_issue();
-		//			Weight::from_ref_time(0)
+		//			Weight::from_parts(0, 0)
 		//		}
 	}
 }
@@ -1074,7 +1167,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Update class total issuance
-		Self::update_class_total_issuance(&sender, &class_id, quantity)?;
+		Self::update_class_total_issuance(&sender, &class_id, quantity, false)?;
 
 		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
@@ -1096,9 +1189,11 @@ impl<T: Config> Pallet<T> {
 			last_token_id = token_id;
 		}
 
+		let first_token_id = last_token_id.saturating_sub(quantity.into());
+
 		Self::deposit_event(Event::<T>::NewNftMinted(
-			*new_asset_ids.first().unwrap(),
-			*new_asset_ids.last().unwrap(),
+			(class_id, first_token_id),
+			(class_id, last_token_id),
 			sender.clone(),
 			class_id,
 			quantity,
@@ -1106,6 +1201,156 @@ impl<T: Config> Pallet<T> {
 		));
 
 		Ok((new_asset_ids, last_token_id))
+	}
+
+	/// Internal NFT minting with token id
+	fn do_mint_nft_with_token_id(
+		sender: &T::AccountId,
+		mint_to: &T::AccountId,
+		class_id: ClassIdOf<T>,
+		token_id: Option<TokenIdOf<T>>,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		is_locked: bool,
+		is_pre_signed_mint: bool,
+	) -> Result<TokenIdOf<T>, DispatchError> {
+		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
+
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
+
+		// Update class total issuance
+		Self::update_class_total_issuance(&sender, &class_id, 1u32, is_pre_signed_mint)?;
+
+		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
+		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+
+		let new_nft_data = NftAssetData {
+			deposit,
+			attributes,
+			is_locked,
+		};
+
+		let mut new_token_id: TokenIdOf<T> = Default::default();
+
+		// Mint specific token id
+		if let Some(provided_token_id) = token_id {
+			NftModule::<T>::mint_with_token_id(
+				&mint_to,
+				class_id,
+				provided_token_id,
+				metadata.clone(),
+				new_nft_data.clone(),
+			)?;
+			new_token_id = provided_token_id
+		} else {
+			new_token_id = NftModule::<T>::mint(&mint_to, class_id, metadata.clone(), new_nft_data.clone())?;
+		}
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, new_token_id.clone()),
+			(class_id, new_token_id),
+			mint_to.clone(),
+			class_id,
+			1u32,
+			new_token_id,
+		));
+
+		Ok(new_token_id)
+	}
+
+	// Mint with pre-signed approval from collection owner
+	pub(crate) fn do_mint_pre_signed(
+		mint_to: T::AccountId,
+		mint_data: PreSignedMintOf<T>,
+		signer: T::AccountId,
+	) -> DispatchResult {
+		let PreSignedMint {
+			class_id,
+			token_id,
+			attributes,
+			metadata,
+			only_account,
+			expired,
+			mint_price,
+		} = mint_data;
+
+		// If specific account recipient specified, this will make sure requirement pass
+		if let Some(account) = only_account {
+			ensure!(account == mint_to, Error::<T>::NoPermission);
+		}
+
+		let now = frame_system::Pallet::<T>::block_number();
+		ensure!(expired >= now, Error::<T>::SignatureExpired);
+
+		// Get class info of the collection
+		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+
+		// Ensure signer is owner of collection
+		ensure!(signer == class_info.owner, Error::<T>::NoPermission);
+
+		// If minting price is specified, this will transfer token to collection owner.
+		if let Some(price) = mint_price {
+			<T as orml_nft::Config>::Currency::transfer(
+				&mint_to,
+				&class_info.owner,
+				price,
+				ExistenceRequirement::KeepAlive,
+			)?;
+		}
+
+		Self::do_mint_nft_with_token_id(
+			&mint_to, &mint_to, class_id, token_id, metadata, attributes, false, true,
+		)?;
+
+		Ok(())
+	}
+
+	/// Internal NFT minting with token id
+	fn do_mint_nft_proxy(
+		sender: &T::AccountId,
+		mint_to: &T::AccountId,
+		class_id: ClassIdOf<T>,
+		token_id: Option<TokenIdOf<T>>,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		is_locked: bool,
+	) -> Result<(ClassIdOf<T>, TokenIdOf<T>), DispatchError> {
+		let minted_token_id = Self::do_mint_nft_with_token_id(
+			&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked, false,
+		)?;
+		let nft_proxy_account: T::AccountId =
+			T::PalletId::get().into_sub_account_truncating((class_id, &minted_token_id));
+		let proxy_deposit = <pallet_proxy::Pallet<T>>::deposit(1u32);
+		// Ensure balance above ED
+		let total_deposit = proxy_deposit.saturating_add(<T as pallet_proxy::Config>::Currency::minimum_balance());
+
+		<T as pallet_proxy::Config>::Currency::transfer(&sender, &nft_proxy_account, total_deposit, KeepAlive)?;
+
+		Self::deposit_event(Event::<T>::NewProxyNftMinted(
+			(class_id, minted_token_id.clone()),
+			(class_id, minted_token_id.clone()),
+			mint_to.clone(),
+			class_id,
+			1u32,
+			minted_token_id,
+			nft_proxy_account,
+		));
+
+		Ok((class_id, minted_token_id))
+	}
+
+	/// A helper method to construct metadata.
+	///
+	/// # Errors
+	///
+	/// This function returns an [`IncorrectMetadata`](crate::Error::IncorrectMetadata) dispatch
+	/// error if the provided metadata is too long.
+	pub fn construct_metadata(metadata: Vec<u8>) -> Result<BoundedVec<u8, T::MaxMetadata>, DispatchError> {
+		Ok(BoundedVec::try_from(metadata).map_err(|_| Error::<T>::ExceedMaximumMetadataLength)?)
 	}
 
 	/// Internal NFT class creation
@@ -1159,6 +1404,15 @@ impl<T: Config> Pallet<T> {
 		};
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
+
+		let network_treasury = T::Treasury::get().into_account_truncating();
+		// Transfer storage deposit fee
+		<T as orml_nft::Config>::Currency::transfer(
+			sender,
+			&network_treasury,
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
 		ClassDataCollection::<T>::insert(next_class_id, collection_id);
 
 		Self::deposit_event(Event::<T>::NewNftClassCreated(sender.clone(), next_class_id));
@@ -1173,11 +1427,18 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Update total minted tokens for a class
-	fn update_class_total_issuance(sender: &T::AccountId, class_id: &ClassIdOf<T>, quantity: u32) -> DispatchResult {
+	fn update_class_total_issuance(
+		sender: &T::AccountId,
+		class_id: &ClassIdOf<T>,
+		quantity: u32,
+		is_pre_signed_mint: bool,
+	) -> DispatchResult {
 		// update class total issuance
 		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
 			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
-			ensure!(sender.clone() == info.owner, Error::<T>::NoPermission);
+			if !is_pre_signed_mint {
+				ensure!(info.owner == sender.clone(), Error::<T>::NoPermission);
+			}
 			match info.data.mint_limit {
 				Some(l) => {
 					ensure!(
@@ -1206,8 +1467,8 @@ impl<T: Config> Pallet<T> {
 		log::info!("Start upgrading nft class data v2");
 		log::info!("Start upgrading nft token data v2");
 		let mut num_nft_classes = 0;
-		let mut num_nft_tokens = 0;
-		let mut asset_by_owner_updates = 0;
+		let _num_nft_tokens = 0;
+		let _asset_by_owner_updates = 0;
 
 		Classes::<T>::translate(
 			|k,
@@ -1245,7 +1506,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 
 	/// Upgrading lock of each nft
@@ -1280,7 +1541,7 @@ impl<T: Config> Pallet<T> {
 			},
 		);
 		log::info!("Tokens upgraded: {}", num_nft_tokens);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 }
 
@@ -1457,36 +1718,16 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError> {
-		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
-
-		ensure!(
-			metadata.len() as u32 <= T::MaxMetadata::get(),
-			Error::<T>::ExceedMaximumMetadataLength
-		);
-
-		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
-		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
-		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
-
-		let new_nft_data = NftAssetData {
-			deposit,
-			attributes: attributes,
-			is_locked: false,
-		};
-
-		let minted_token_id =
-			NftModule::<T>::mint_with_token_id(&sender, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
-
-		Self::deposit_event(Event::<T>::NewNftMinted(
-			(class_id, minted_token_id.clone()),
-			(class_id, minted_token_id),
-			sender.clone(),
+		Self::do_mint_nft_with_token_id(
+			sender,
+			sender,
 			class_id,
-			1u32,
-			minted_token_id,
-		));
-
-		Ok(minted_token_id)
+			Some(token_id),
+			metadata,
+			attributes,
+			false,
+			false,
+		)
 	}
 
 	fn get_free_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {

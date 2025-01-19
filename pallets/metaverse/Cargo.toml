@@ -1,24 +1,25 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-metaverse'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network pallet."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-metaverse"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { workspace = true, optional = true, features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive"] }
+codec = { workspace = true, package = "parity-scale-codec" }
+log = { workspace = true }
 scale-info = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 pallet-balances = { workspace = true }
-pallet-randomness-collective-flip = { workspace = true }
+pallet-insecure-randomness-collective-flip = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
@@ -42,9 +43,9 @@ currencies = { package = "currencies", path = "../currencies", default-features 
 
 [dependencies.nft]
 default-features = false
-package = 'pallet-nft'
-path = '../nft'
-version = '2.0.0-rc6'
+package = "pallet-nft"
+path = "../nft"
+version = "2.0.0-rc6"
 
 [features]
 runtime-benchmarks = [
@@ -52,21 +53,32 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
 ]
-default = ['std']
+default = ["std"]
 std = [
     "serde",
     "codec/std",
+    "log/std",
     "sp-runtime/std",
     "frame-support/std",
     "frame-system/std",
     "sp-io/std",
     "sp-core/std",
     "sp-std/std",
+    "sp-session/std",
+    "sp-version/std",
     "orml-traits/std",
     "orml-tokens/std",
+    "orml-currencies/std",
+    "core-primitives/std",
     "nft/std",
     "primitives/std",
+    "core-primitives/std",
     "scale-info/std",
     "frame-benchmarking/std",
-    "currencies/std"
+    "currencies/std",
+    "pallet-balances/std",
+    "pallet-timestamp/std",
+    "pallet-sudo/std",
+    "pallet-transaction-payment/std",
+    "pallet-insecure-randomness-collective-flip/std",
 ]

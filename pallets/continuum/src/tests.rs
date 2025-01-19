@@ -21,8 +21,8 @@ use frame_support::{assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
 
 use core_primitives::TokenType;
-use mock::BlockNumber as MBlockNumber;
-use mock::{RuntimeEvent, *};
+
+use mock::*;
 
 use super::*;
 
@@ -477,6 +477,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 			CONTINUUM_MAP_COORDINATE,
 			ALICE_METAVERSE_ID
 		));
+		assert_eq!(Balances::free_balance(ALICE), 99999);
 
 		assert_ok!(ContinuumModule::bid_map_spot(
 			RuntimeOrigin::signed(BOB),
@@ -489,6 +490,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 			CONTINUUM_MAP_COORDINATE,
 			BOB_METAVERSE_ID
 		));
+		assert_eq!(Balances::free_balance(BOB), 499);
 
 		// Alice leading bid should be removed
 		assert!(!MetaverseLeadingBid::<Runtime>::contains_key(
@@ -514,6 +516,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 			CONTINUUM_MAP_COORDINATE,
 			BOB_METAVERSE_ID
 		));
+		assert_eq!(Balances::free_balance(ALICE), 99998);
 
 		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account_truncating();
 		ContinuumModule::transfer_spot(CONTINUUM_MAP_COORDINATE, treasury, (BOB, BOB_METAVERSE_ID));

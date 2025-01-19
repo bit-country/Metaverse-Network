@@ -23,7 +23,6 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::{
-	assert_ok,
 	dispatch::DispatchResult,
 	ensure,
 	pallet_prelude::*,
@@ -31,16 +30,14 @@ use frame_support::{
 	transactional,
 };
 use frame_system::pallet_prelude::*;
-use scale_info::prelude::format;
 use sp_runtime::{traits::One, ArithmeticError, FixedPointNumber, FixedU128};
-use sp_std::{boxed::Box, vec::Vec};
+use sp_std::boxed::Box;
 use xcm::v3::MultiLocation;
 use xcm::VersionedMultiLocation;
 
+use core_primitives::CurrencyIdManagement;
 pub use pallet::*;
-use primitives::{
-	AssetIds, AssetMetadata, BuyWeightRate, CurrencyId, ForeignAssetIdMapping, FungibleTokenId, Ratio, TokenId,
-};
+use primitives::{AssetIds, AssetMetadata, BuyWeightRate, ForeignAssetIdMapping, FungibleTokenId, Ratio, TokenId};
 
 mod mock;
 mod tests;
@@ -51,6 +48,7 @@ pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system:
 #[frame_support::pallet]
 pub mod pallet {
 	use primitives::{AssetIds, AssetMetadata, EvmAddress, TokenId};
+	use sp_std::vec::Vec;
 
 	use super::*;
 
@@ -150,6 +148,21 @@ pub mod pallet {
 	pub type AssetMetadatas<T: Config> =
 		StorageMap<_, Twox64Concat, AssetIds, AssetMetadata<BalanceOf<T>>, OptionQuery>;
 
+	#[pallet::genesis_config]
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T: Config> {
+		pub assets_info: Vec<(MultiLocation, AssetMetadata<BalanceOf<T>>)>,
+		pub _config: PhantomData<T>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+		fn build(&self) {
+			for asset_info in self.assets_info.iter() {
+				Pallet::<T>::do_register_foreign_asset(&asset_info.0, &asset_info.1);
+			}
+		}
+	}
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
@@ -344,5 +357,25 @@ where
 			}
 		}
 		None
+	}
+}
+
+impl<T: Config> CurrencyIdManagement for ForeignAssetMapping<T> {
+	fn check_token_exist(_token_id: FungibleTokenId) -> bool {
+		return true;
+	}
+
+	fn convert_to_rcurrency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()> {
+		match currency_id {
+			FungibleTokenId::NativeToken(token_id) => Ok(FungibleTokenId::FungibleToken(token_id)),
+			_ => Err(()),
+		}
+	}
+
+	fn convert_to_currency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()> {
+		match currency_id {
+			FungibleTokenId::FungibleToken(token_id) => Ok(FungibleTokenId::NativeToken(token_id)),
+			_ => Err(()),
+		}
 	}
 }

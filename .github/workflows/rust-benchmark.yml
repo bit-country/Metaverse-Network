@@ -15,7 +15,7 @@ on:
 jobs:
   check:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -25,20 +25,16 @@ jobs:
       - name: Set-Up
         run: sudo apt install -y protobuf-compiler cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
 
-      - name: Install Rustup
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
-          source ~/.cargo/env
-          rustup default nightly && rustup update
-          rustup default nightly-2022-11-15
-          rustup target add wasm32-unknown-unknown --toolchain nightly-2022-11-15
-      - name: Check Rust version
+      - name: Install Rust version specified in rust-toolchain.toml
         run: rustup show
+
       - name: Check Format
         run: cargo fmt --all -- --check
+
       - name: Build Benchmarking
         run: |
           cargo build --release --features runtime-benchmarks
+          
       - name: Run Benchmarking
         run: |
           ./target/release/metaverse-node benchmark pallet \

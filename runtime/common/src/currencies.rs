@@ -1,24 +1,23 @@
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
-use pallet_evm::Context;
-use pallet_evm::{
-	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
-	PrecompileResult, PrecompileSet,
-};
+
+use pallet_evm::{ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult};
+#[cfg(test)]
+use pallet_evm::{IsPrecompileResult, PrecompileSet};
 use sp_core::{H160, U256};
-use sp_runtime::traits::{AccountIdConversion, Dispatchable, Zero};
+use sp_runtime::traits::Dispatchable;
 use sp_std::{marker::PhantomData, prelude::*};
 
 use evm_mapping::AddressMapping as EvmMapping;
-use evm_mapping::EvmAddressMapping;
+
 use precompile_utils::data::{Address, EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
 use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
-use primitives::{evm, AssetIds, AssetMetadata, Balance, FungibleTokenId};
+use primitives::{AssetIds, Balance, FungibleTokenId};
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -114,7 +113,7 @@ where
 		}))
 	}
 
-	fn is_precompile(&self, address: H160) -> bool {
+	fn is_precompile(&self, _address: H160, _remaining_gas: u64) -> IsPrecompileResult {
 		todo!()
 	}
 }
@@ -143,7 +142,7 @@ where
 		if let Some(currency_id) = Runtime::decode_evm_address(address) {
 			log::debug!(target: "evm", "multicurrency: currency id: {:?}", currency_id);
 
-			let result = {
+			let _result = {
 				let selector = match handle.read_selector() {
 					Ok(selector) => selector,
 					Err(e) => return Err(e),
@@ -193,7 +192,10 @@ where
 	>,
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
-	fn not_supported(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+	fn not_supported(
+		_currency_id: FungibleTokenId,
+		_handle: &mut impl PrecompileHandle,
+	) -> EvmResult<PrecompileOutput> {
 		Err(PrecompileFailure::Error {
 			exit_status: pallet_evm::ExitError::Other("not supported".into()),
 		})

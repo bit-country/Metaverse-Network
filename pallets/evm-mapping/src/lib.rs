@@ -31,25 +31,26 @@ use codec::Encode;
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
-	traits::{Currency, IsType, OnKilledAccount},
+	traits::{Currency, ExistenceRequirement, IsType, OnKilledAccount},
 	transactional,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
+use hex_literal::hex;
 use orml_traits::currency::TransferAll;
+pub use pallet::*;
+use primitives::{AccountIndex, EvmAddress};
 use sp_core::crypto::AccountId32;
-use sp_core::{H160, H256};
+
 use sp_io::{
 	crypto::secp256k1_ecdsa_recover,
 	hashing::{blake2_256, keccak_256},
 };
+use sp_runtime::traits::Saturating;
 use sp_runtime::{
-	traits::{LookupError, StaticLookup, Zero},
+	traits::{LookupError, StaticLookup},
 	MultiAddress,
 };
 use sp_std::{marker::PhantomData, vec::Vec};
-
-pub use pallet::*;
-use primitives::{AccountIndex, EvmAddress};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -107,6 +108,10 @@ pub trait AddressMapping<AccountId> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use sp_core::H160;
+
+	pub(crate) type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -122,8 +127,16 @@ pub mod pallet {
 		#[pallet::constant]
 		type ChainId: Get<u64>;
 
+		/// The network treasury account
+		#[pallet::constant]
+		type NetworkTreasuryAccount: Get<Self::AccountId>;
+
 		/// Merge free balance from source to dest.
 		type TransferAll: TransferAll<Self::AccountId>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 
 		/// Weight implementation for evm mapping extrinsics
 		type WeightInfo: WeightInfo;
@@ -169,11 +182,49 @@ pub mod pallet {
 	#[pallet::getter(fn evm_addresses)]
 	pub type EvmAddresses<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, EvmAddress, OptionQuery>;
 
+	#[pallet::genesis_config]
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T: Config> {
+		pub is_testnet_genesis: bool,
+		pub _marker: PhantomData<T>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+		fn build(&self) {
+			if (self.is_testnet_genesis) {
+				// Add EVM address mapping for 5EMjsd14hMBsWVvC7bBaSC7FZQYxw1jQcZHA3Vho3pwtcbfM
+				let alice_evm = H160::from_slice(&hex_literal::hex!("d43593c715fdd31c61141abd04a99fd6822c8558"));
+				let alice_substrate = T::AddressMapping::get_account_id(&alice_evm);
+
+				<Accounts<T>>::insert(alice_evm, &alice_substrate);
+				<EvmAddresses<T>>::insert(&alice_substrate, alice_evm);
+
+				<Pallet<T>>::deposit_event(Event::ClaimAccount {
+					account_id: alice_substrate,
+					evm_address: alice_evm,
+				});
+
+				// Add EVM address for metamask test account 5EMjsczhnpcwi7AcfreSB9vdvHzbcF4EBHNYjFNwooaQ9U2W
+				let test_account_evm = H160::from_slice(&hex_literal::hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b"));
+				let test_account_substrate = T::AddressMapping::get_account_id(&test_account_evm);
+
+				<Accounts<T>>::insert(test_account_evm, &test_account_substrate);
+				<EvmAddresses<T>>::insert(&test_account_substrate, test_account_evm);
+
+				<Pallet<T>>::deposit_event(Event::ClaimAccount {
+					account_id: test_account_substrate,
+					evm_address: test_account_evm,
+				});
+			}
+		}
+	}
+
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -210,6 +261,14 @@ pub mod pallet {
 				T::TransferAll::transfer_all(&account_id, &who)?;
 			}
 
+			// Transfer storage deposit fee
+			<T as Config>::Currency::transfer(
+				&who,
+				&T::NetworkTreasuryAccount::get(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			Accounts::<T>::insert(eth_address, &who);
 			EvmAddresses::<T>::insert(&who, eth_address);
 
@@ -225,11 +284,20 @@ pub mod pallet {
 		/// address based off of those accounts.
 		/// Ensure eth_address has not been mapped
 		#[pallet::weight(T::WeightInfo::claim_default_account())]
+		#[transactional]
 		pub fn claim_default_account(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			// ensure account_id has not been mapped
 			ensure!(!EvmAddresses::<T>::contains_key(&who), Error::<T>::AccountIdHasMapped);
+
+			// Transfer storage deposit fee
+			<T as Config>::Currency::transfer(
+				&who,
+				&T::NetworkTreasuryAccount::get(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			let eth_address = T::AddressMapping::get_or_create_evm_address(&who);
 
@@ -259,7 +327,7 @@ impl<T: Config> Pallet<T> {
 
 	#[cfg(any(feature = "runtime-benchmarks", feature = "std"))]
 	// Constructs a message and signs it.
-	pub fn eth_sign(secret: &libsecp256k1::SecretKey, who: &T::AccountId) -> EcdsaSignature {
+	pub fn eth_sign(secret: &libsecp256k1::SecretKey, _who: &T::AccountId) -> EcdsaSignature {
 		let address = Self::eth_address(secret);
 
 		let what = address.using_encoded(to_ascii_hex);
