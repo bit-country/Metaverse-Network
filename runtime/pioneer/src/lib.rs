@@ -497,6 +497,7 @@ parameter_types! {
 	pub const CollatorPotPalletId: PalletId = PalletId(*b"bcPotStk");
 	pub const EconomyTreasuryPalletId: PalletId = PalletId(*b"bit/econ");
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
+	pub const BridgeSovereignPalletId: PalletId = PalletId(*b"bit/brgd");
 }
 
 // Treasury and Bounty
@@ -1798,6 +1799,16 @@ impl reward::Config for Runtime {
 	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 
+impl modules_bridge::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type BridgeOrigin = EnsureRootOrTwoThirdsCouncilCollective;
+	type Currency = Balances;
+	type MultiCurrency = Currencies;
+	type NFTHandler = Nft;
+	type NativeCurrencyId = GetNativeCurrencyId;
+	type PalletId = BridgeSovereignPalletId;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1881,6 +1892,8 @@ construct_runtime!(
 		Reward: reward::{Pallet, Call, Storage ,Event<T>} = 68,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
+		// Bridge
+		BridgeSupport: modules_bridge::{Pallet, Call, Storage, Event<T>} = 71,
 	}
 );
 

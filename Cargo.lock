@@ -8970,6 +8970,7 @@ dependencies = [
  "hex-literal",
  "log",
  "metaverse-runtime-common",
+ "modules-bridge",
  "orml-currencies",
  "orml-nft",
  "orml-oracle",
