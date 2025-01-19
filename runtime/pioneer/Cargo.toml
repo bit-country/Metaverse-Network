@@ -43,6 +43,7 @@ emergency = { package = "pallet-emergency", path = "../../pallets/emergency", ve
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 asset-manager = { path = "../../pallets/asset-manager", default-features = false }
 reward = { package = "pallet-reward", path = "../../pallets/reward", version = "2.0.0-rc6", default-features = false }
+modules-bridge = { path = "../../modules/bridge", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { workspace = true }
@@ -194,5 +195,6 @@ std = [
     "reward/std",
     'pallet-collator-selection/std',
     "pallet-preimage/std",
-    "metaverse-runtime-common/std"
+    "metaverse-runtime-common/std",
+    "modules-bridge/std"
 ]
