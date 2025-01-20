@@ -218,7 +218,7 @@ std = [
     "pallet-collator-selection/std",
     "pallet-preimage/std",
     "metaverse-runtime-common/std",
-    "modules-bridge/std"
+    "modules-bridge/std",
     "polkadot-runtime-common/std",
     "polkadot-parachain/std",
     "polkadot-primitives/std"
