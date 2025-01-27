@@ -49,7 +49,9 @@ use sp_std::vec::Vec;
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
-pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
+pub use primitive_traits::{
+	Attributes, NFTMigrationTrait, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType,
+};
 use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1, PreSignedMint};
 use primitives::{AssetId, ClassId, GroupCollectionId, ItemId, TokenId};
 pub use weights::WeightInfo;
@@ -436,25 +438,7 @@ pub mod pallet {
 			properties: NftMetadata,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-
-			ensure!(
-				name.len() as u32 <= T::MaxMetadata::get() && properties.len() as u32 <= T::MaxMetadata::get(),
-				Error::<T>::ExceedMaximumMetadataLength
-			);
-
 			let next_group_collection_id = Self::do_create_group_collection(name.clone(), properties.clone())?;
-
-			let collection_data = NftGroupCollectionData { name, properties };
-
-			GroupCollections::<T>::insert(next_group_collection_id, collection_data);
-
-			let all_collection_count = Self::all_nft_collection_count();
-			let new_all_nft_collection_count = all_collection_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding a new collection to total collection")?;
-
-			AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
-
 			Self::deposit_event(Event::<T>::NewNftCollectionCreated(next_group_collection_id));
 			Ok(().into())
 		}
@@ -1051,6 +1035,10 @@ impl<T: Config> Pallet<T> {
 
 	/// Internal creation of group collection
 	fn do_create_group_collection(name: Vec<u8>, properties: Vec<u8>) -> Result<GroupCollectionId, DispatchError> {
+		ensure!(
+			name.len() as u32 <= T::MaxMetadata::get() && properties.len() as u32 <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
 		let next_group_collection_id =
 			NextGroupCollectionId::<T>::try_mutate(|collection_id| -> Result<GroupCollectionId, DispatchError> {
 				let current_id = *collection_id;
@@ -1065,6 +1053,13 @@ impl<T: Config> Pallet<T> {
 		let collection_data = NftGroupCollectionData { name, properties };
 
 		<GroupCollections<T>>::insert(next_group_collection_id, collection_data);
+
+		let all_collection_count = Self::all_nft_collection_count();
+		let new_all_nft_collection_count = all_collection_count
+			.checked_add(One::one())
+			.ok_or("Overflow adding a new collection to total collection")?;
+
+		AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
 		Ok(next_group_collection_id)
 	}
@@ -1555,8 +1550,8 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		Ok(who == &asset_info.owner)
 	}
 
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<BalanceOf<T>>, DispatchError> {
-		let asset_info = NftModule::<T>::classes(asset_id.0).ok_or(Error::<T>::AssetInfoNotFound)?;
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftAssetData<BalanceOf<T>>, DispatchError> {
+		let asset_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
 
 		Ok(asset_info.data)
 	}
@@ -1764,6 +1759,74 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	) -> DispatchResult {
 		NftModule::<T>::transfer_stackable_nft(&sender, &to, *asset_id, amount);
 
+		Ok(())
+	}
+}
+
+impl<T: Config> NFTMigrationTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
+	type TokenId = TokenIdOf<T>;
+	type ClassId = ClassIdOf<T>;
+
+	fn get_next_collection_id() -> GroupCollectionId {
+		Self::next_group_collection_id()
+	}
+
+	fn get_next_class_id() -> Self::ClassId {
+		NftModule::<T>::next_class_id()
+	}
+
+	fn get_next_token_id(class_id: Self::ClassId) -> Self::TokenId {
+		NftModule::<T>::next_token_id(class_id)
+	}
+
+	fn migrate_collection(collection_data: NftGroupCollectionData) -> DispatchResult {
+		Self::do_create_group_collection(collection_data.name, collection_data.properties)?;
+		Ok(())
+	}
+
+	fn migrate_class(
+		owner: &T::AccountId,
+		class_id: Self::ClassId,
+		collection_id: GroupCollectionId,
+		class_metadata: NftMetadata,
+		class_data: NftClassData<BalanceOf<T>>,
+	) -> sp_runtime::DispatchResult {
+		Self::do_create_class(
+			owner,
+			class_metadata,
+			class_data.attributes,
+			collection_id,
+			class_data.token_type,
+			class_data.collection_type,
+			class_data.royalty_fee,
+			class_data.mint_limit,
+		)?;
+		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+			info.data.is_locked = class_data.is_locked;
+			Ok(())
+		})
+		// TODO: Transfer class creation fees back to owner
+	}
+
+	fn migrate_token(
+		owner: &T::AccountId,
+		token_id: Self::TokenId,
+		class_id: Self::ClassId,
+		token_metadata: NftMetadata,
+		token_data: NftAssetData<BalanceOf<T>>,
+	) -> sp_runtime::DispatchResult {
+		Self::do_mint_nft_with_token_id(
+			owner,
+			owner,
+			class_id,
+			None,
+			token_metadata,
+			token_data.attributes,
+			token_data.is_locked,
+			false,
+		)?;
+		// TODO: Transfer token minting fees back to owner
 		Ok(())
 	}
 }

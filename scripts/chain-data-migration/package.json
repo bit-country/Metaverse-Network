@@ -1,0 +1,31 @@
+{
+  "name": "pioneer-migration",
+  "version": "0.0.1",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "check-lint": "gts lint",
+    "fix-lint": "gts fix",
+    "clean": "gts clean && r",
+    "compile": "tsc",
+    "dev": "tsx ./src/index.ts",
+    "prepare": "pnpm run compile",
+    "pretest": "pnpm run compile",
+    "posttest": "pnpm run lint"
+  },
+  "dependencies": {
+    "@polkadot/api": "^12.1.1",
+    "@polkadot/keyring": "^12.6.2",
+    "@polkadot/types": "^12.1.1",
+    "@polkadot/types-codec": "^12.1.1",
+    "@polkadot/util": "^12.6.2",
+    "@polkadot/util-crypto": "^12.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.7",
+    "gts": "^5.3.1",
+    "ts-node": "10.9.2",
+    "tsx": "^4.16.2",
+    "typescript": "^5.2.0"
+  }
+}
